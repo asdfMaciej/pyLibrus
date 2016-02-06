@@ -6,18 +6,27 @@ class GradeBook:
 
 	Variables:
 	grades (list) - The list of grades.
-
+	subjects (list) - The list of school subjects.
+	teachers (dictionary) - A dictionary of teachers. {subject:teacher}
+	subject_grades (dictionary) - A list of grades per subject. {subject:[grades]}
+	midterm_grades (dictionary) - A list of midterm grades per subject. {subject:[grades]}
+	
 	Functions:
 	add(grade) - Add a grade into the GradeBook.
 	display() - Return the grades from the GradeBook, allowing to display them.
 	sort_by_weight(reverse=False) - Sort the grades by their weight.
 	sort_by_date(reverse=False) - Sort the grades by their date.
 	sort_by_grade(reverse=False) - Sort the grades by their value.
+	calculate_average(subject) - Calculates average of a specified subject, taking weights in account.
 	"""
 
 	def __init__(self):
 		"""Initializes the GradeBook by initializing variables."""
 		self.grades = []
+		self.subjects = []
+		self.teachers = {}
+		self.subject_grades = {}
+		self.midterm_grades = {}
 
 	def add(self, grade):
 		"""Add a grade into the GradeBook.
@@ -26,6 +35,19 @@ class GradeBook:
 		grade - a Grade() object.
 		"""
 		self.grades.append(grade)
+		if grade[3] not in self.subjects: # grade[3] is the school subject
+			self.subjects.append(grade[3])
+			self.subject_grades[grade[3]] = []
+			self.midterm_grades[grade[3]] = []
+
+		if grade[9] not in self.teachers:
+			self.teachers[grade[3]] = grade[9] # {subject:teacher}
+
+		if grade[1] == 1: # If grade numtype equals MidtermGrade
+			if "śródroczna" in grade[7]: # If śródroczna is in description
+				self.midterm_grades[grade[3]].append(grade)
+
+		self.subject_grades[grade[3]].append(grade)
 
 	def display(self):
 		"""Return the grades from the GradeBook, allowing to display them."""
@@ -57,6 +79,27 @@ class GradeBook:
 		reverse (bool) - whether to reverse the list or not. (default False)
 		"""
 		self.grades.sort(key=lambda x: int(x[13]), reverse=reverse)
+
+	def calculate_average(self, subject):
+		"""Calculates an average of a specified subject, taking weights in account.
+
+		Arguments:
+		subject (string) - The mentioned subject."""
+		if subject not in self.subjects:
+			raise NameError('Subject not found - '+subject+'. Use ones specified in GradeBook.subjects next time.')
+
+		temp_grades = []
+		temp_sum = 0
+		temp_count = 0
+		for x in self.subject_grades[subject]:
+			if x.absolute_value and (x.calculate_towards_avg_grade == 1): # doesnt equal 0 and counts towards average
+				temp_grades.append(x)
+
+		for x in temp_grades:
+			temp_sum += x.absolute_value * x.weight
+			temp_count += x.weight
+
+		return float(temp_sum/temp_count)
 
 class Grade:
 	"""Grade - A grade object. Stores all of values, allows displaying it on a function call.
@@ -98,7 +141,7 @@ class Grade:
 	description (string) - Description of the grade.
 
 	Functions:
-	__init__(values) - Accepts the values from Parser and puts them into array. Initializing method.
+	__init__(values) - Accepts the values from Parser.parse_grade and puts them into array. Initializing method.
 	update(values) - Updates the values with new ones. Done on initialization.
 	display() - Returns a text representation of the grade, which can be used for display.
 	set_absolute_values() - Turns the grade_value into absolute_value. Done on initialization.
@@ -109,7 +152,7 @@ class Grade:
 		"""Initializes the Grade by initializing variables, updating them and creating a numeral representation of the grade.
 
 		Parameters:
-		values (list) - A list of values, provided by Parser class.
+		values (list) - A list of values, provided by Parser.parse_grade.
 		"""
 		self.values = []
 		self.grade_id = 0
@@ -131,14 +174,19 @@ class Grade:
 		self.set_absolute_values()
 		self.values.append(self.absolute_value) # values[13]
 
-	def __getitem__(self, index): # allows sorting with .sort()
+	def __getitem__(self, index):
+		"""Allows sorting with .sort()."""
 		return self.values[index]
+
+	def __str__(self):
+		"""Allows printing the Grade without any issues."""
+		return self.display()
 
 	def update(self, values):
 		"""Updates the variables in Grade class with ones provided in arguments. Called on initialization.
 
 		Parameters:
-		values (list) - A list of values, provided by Parser class.
+		values (list) - A list of values, provided by Parser.parse_grade.
 		"""
 		self.values = values
 
@@ -198,14 +246,14 @@ class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
 
 	Functions:
-	ParseGrade(grade) - Parses a grade object provided by BeautifulSoup [don't confuse with the class Grade]. Returns a list of values. 
+	parse_grade(grade) - Parses BeautifulSoup grades provided by Parser.parse_html. Returns a list of values. 
+	parse_html(html) - Parses HTML into BeautifulSoup grades.
 	"""
 	def __init__(self):
 		pass
 
-	def ParseGrade(self, grade):
-		"""ParseGrade - Parses a grade object provided by BeautifulSoup [don't confuse with the class Grade]. Returns a list of values."""
-
+	def parse_grade(self, grade):
+		"""parse_grade - Parses a grade object provided by BeautifulSoup [don't confuse with the class Grade]. Returns a list of values."""
 		school_subject = repr(grade.findParents('tr')[0]).split('/tree_colapsed.png"/>')[1].split('<td>')[1].split('</td>')[0]
 		grade_id = repr(grade).split("szczegoly/")[1].split('" title')[0]
 		grade_value = str(grade.text)
@@ -245,32 +293,44 @@ class Parser:
 		return [grade_id, grade_numtype, grade_type, school_subject, grade_value, date, day_of_the_week, category,
 		weight, teacher, calculate_towards_avg_grade, added, description]
 
+	def parse_html(self, html):
+		"""parse_html(html) - parses html and returns a list of soup grades (used in Parser.parse_grade)"""
+		soup = BeautifulSoup(html, "html.parser")
+		soupGrades = soup.findAll("a", {"class": "ocena"})
+		return soupGrades
 
-def ReadFile(name):
-	"""ReadFile(name) - opens a file and returns its content."""
+def read_file(name):
+	"""read_file(name) - opens a file and returns its content."""
 	tFile = open(name, "r", encoding="utf8")
 	tContent = tFile.readlines()
 	tFile.close()
 	return "/n".join(tContent)
 
-def SaveFile(name, content):
-	"""SaveFile(name, content) - opens a file and writes into it."""
+def save_file(name, content):
+	"""save_file(name, content) - opens a file and writes into it."""
 	tFile = open(name, "w", encoding="utf8")
 	tFile.write(content)
 	tFile.close()
 	return True
 
-pars = Parser()
-dziennik = GradeBook()
-html = ReadFile("main.html")
-soup = BeautifulSoup(html, "html.parser")
-oceny = soup.findAll("a", {"class": "ocena"})
-oceny_txt = ""
+objParser = Parser()
+objDziennik = GradeBook()
+html = read_file("main.html")
+oceny = objParser.parse_html(html)
 for i in range(len(oceny)):
 	if i - 1: # first grade is no. 0, and doesnt parse due to librus being dumb and putting a >testgrade in html source
-		dziennik.add(Grade(pars.ParseGrade(oceny[i-1])))
+		objDziennik.add(Grade(objParser.parse_grade(oceny[i-1])))
 
-dziennik.sort_by_grade()
-oceny_txt = dziennik.display()
+objDziennik.sort_by_grade()
+oceny_txt = objDziennik.display()
 print(oceny_txt)
-SaveFile("oceny.txt", oceny_txt)
+
+for przedmiot, ocena in objDziennik.midterm_grades.items():
+	print(przedmiot)
+	print(objDziennik.calculate_average(przedmiot))
+	for i in ocena:
+		print(i.display())
+	#print(przedmiot)
+	#print(ocena)
+
+save_file("oceny.txt", oceny_txt)
