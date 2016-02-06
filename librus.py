@@ -7,17 +7,21 @@ class GradeBook:
 	Variables:
 	grades (list) - The list of grades.
 	subjects (list) - The list of school subjects.
-	teachers (dictionary) - A dictionary of teachers. {subject:teacher}
-	subject_grades (dictionary) - A list of grades per subject. {subject:[grades]}
-	midterm_grades (dictionary) - A list of midterm grades per subject. {subject:[grades]}
-	
+	teachers (dictionary) - A dictionary of teachers.
+								{subject:teacher}
+	subject_grades (dictionary) - A list of grades per subject.
+								{subject:[grades]}
+	midterm_grades (dictionary) - A list of midterm grades per subject.
+								{subject:[grades]}
+
 	Functions:
 	add(grade) - Add a grade into the GradeBook.
 	display() - Return the grades from the GradeBook, allowing to display them.
 	sort_by_weight(reverse=False) - Sort the grades by their weight.
 	sort_by_date(reverse=False) - Sort the grades by their date.
 	sort_by_grade(reverse=False) - Sort the grades by their value.
-	calculate_average(subject) - Calculates average of a specified subject, taking weights in account.
+	calculate_average(subject) - Calculates average of a specified subject,
+								taking weights in account.
 	"""
 
 	def __init__(self):
@@ -35,16 +39,16 @@ class GradeBook:
 		grade - a Grade() object.
 		"""
 		self.grades.append(grade)
-		if grade[3] not in self.subjects: # grade[3] is the school subject
+		if grade[3] not in self.subjects:  # grade[3] is the school subject
 			self.subjects.append(grade[3])
 			self.subject_grades[grade[3]] = []
 			self.midterm_grades[grade[3]] = []
 
 		if grade[9] not in self.teachers:
-			self.teachers[grade[3]] = grade[9] # {subject:teacher}
+			self.teachers[grade[3]] = grade[9]  # {subject:teacher}
 
-		if grade[1] == 1: # If grade numtype equals MidtermGrade
-			if "śródroczna" in grade[7]: # If śródroczna is in description
+		if grade[1] == 1:  # If grade numtype equals MidtermGrade
+			if "śródroczna" in grade[7]:  # If śródroczna is in description
 				self.midterm_grades[grade[3]].append(grade)
 
 		self.subject_grades[grade[3]].append(grade)
@@ -84,15 +88,19 @@ class GradeBook:
 		"""Calculates an average of a specified subject, taking weights in account.
 
 		Arguments:
-		subject (string) - The mentioned subject."""
+		subject (string) - The mentioned subject.
+		"""
 		if subject not in self.subjects:
-			raise NameError('Subject not found - '+subject+'. Use ones specified in GradeBook.subjects next time.')
+			raise NameError(
+				'Subject not found - ' + subject +
+				'. Use ones specified in GradeBook.subjects next time.'
+			)
 
 		temp_grades = []
 		temp_sum = 0
 		temp_count = 0
 		for x in self.subject_grades[subject]:
-			if x.absolute_value and (x.calculate_towards_avg_grade == 1): # doesnt equal 0 and counts towards average
+			if x.absolute_value and (x.calculate_towards_avg_grade == 1):
 				temp_grades.append(x)
 
 		for x in temp_grades:
@@ -101,8 +109,10 @@ class GradeBook:
 
 		return float(temp_sum/temp_count)
 
+
 class Grade:
-	"""Grade - A grade object. Stores all of values, allows displaying it on a function call.
+	"""Grade - A grade object. Stores all of values,
+	allows displaying it on a function call.
 
 	Variables:
 	values (list) - Provided by Parser class, a list of values:
@@ -120,36 +130,48 @@ class Grade:
 		[11] - added
 		[12] - description
 		Added upon initialization to the list:
-		[13] - absolute_value	
+		[13] - absolute_value
 	grade_numtype (int) - Type of the grade:
-		0 - DescriptiveGrade - Doesn't have weight (-1) and doesn't specify calculating towards avg grade (-1). Sometimes has a description.
-		1 - MidtermGrade - Doesn't have weight (-1), doesn't calculate towards avg grade. (0)
-		2 - StandardGrade - Has weight and can calculate towards average grade. (doesn't have to)
-		3 - ShapingGrade - Doesn't have weight and doesn't specify calculating towards avg grade, always has a description.
+		0 - DescriptiveGrade - Doesn't have weight (-1) and doesn't specify
+		calculating towards avg grade (-1). Sometimes has a description.
+		1 - MidtermGrade - Doesn't have weight (-1), doesn't calculate
+		towards avg grade. (0)
+		2 - StandardGrade - Has weight and can calculate
+		towards average grade. (doesn't have to)
+		3 - ShapingGrade - Doesn't have weight and doesn't specify
+		calculating towards avg grade, always has a description.
 	grade_id (int) - ID of grade in Librus.
 	grade_type (string) - Type of the grade, corresponds to grade_numtype.
 	grade_value (string) - The grade itself.
-	absolute_value (int) - A numerical representation of the grade. (without the +/- at end and without T/np)
+	absolute_value (int) - A numerical representation of the grade.
+	(without the +/- at end or T/np)
 	school_subject (string) - School subject of the grade.
 	date (string) - Date in which the grade was written. YYYY-MM-DD
-	day_of_the_week (string) - Day of the week in which the grade was written. (pon./wt./śr./czw./pt.)
+	day_of_the_week (string) - Day of the week in which the grade
+	was written. (pon./wt./śr./czw./pt.)
 	category (string) - Type/category of the grade, for ex. exam/vocal exam.
 	weight (int) - Weight of the grade. If no data specified, -1.
 	teacher (string) - Teacher who teaches the subject.
-	added (string) - Teacher who added the grade (usually the same as var teacher)
-	calculate_towards_avg_grade (int) - Whether the grade calculates to average or not, 0/1. If no data specified, -1.
+	added (string) - Teacher who added the grade
+	(usually the same as var teacher)
+	calculate_towards_avg_grade (int) - Whether the grade calculates
+	to average or not. Either 0 or 1. If no data specified, -1.
 	description (string) - Description of the grade.
 
 	Functions:
-	__init__(values) - Accepts the values from Parser.parse_grade and puts them into array. Initializing method.
+	__init__(values) - Accepts the values from Parser.parse_grade and
+	puts them into array. Initializing method.
 	update(values) - Updates the values with new ones. Done on initialization.
-	display() - Returns a text representation of the grade, which can be used for display.
-	set_absolute_values() - Turns the grade_value into absolute_value. Done on initialization.
+	display() - Returns a text representation of the grade,
+	which can be used for display.
+	set_absolute_values() - Turns the grade_value into absolute_value.
+	Done on initialization.
 	return_values() - Returns the internal list of values.
 	"""
 
 	def __init__(self, values):
-		"""Initializes the Grade by initializing variables, updating them and creating a numeral representation of the grade.
+		"""Initializes the Grade by initializing variables, updating them
+			and creating a numeral representation of the grade.
 
 		Parameters:
 		values (list) - A list of values, provided by Parser.parse_grade.
@@ -164,15 +186,15 @@ class Grade:
 		self.date = ""
 		self.day_of_the_week = ""
 		self.category = ""
-		self.weight = 0 
+		self.weight = 0
 		self.teacher = ""
-		self.calculate_towards_avg_grade = 0 
+		self.calculate_towards_avg_grade = 0
 		self.added = ""
-		self.description = "" 
+		self.description = ""
 
 		self.update(values)
 		self.set_absolute_values()
-		self.values.append(self.absolute_value) # values[13]
+		self.values.append(self.absolute_value)  # values[13]
 
 	def __getitem__(self, index):
 		"""Allows sorting with .sort()."""
@@ -183,7 +205,8 @@ class Grade:
 		return self.display()
 
 	def update(self, values):
-		"""Updates the variables in Grade class with ones provided in arguments. Called on initialization.
+		"""Updates the variables in Grade class with ones provided in arguments.
+			Called on initialization.
 
 		Parameters:
 		values (list) - A list of values, provided by Parser.parse_grade.
@@ -203,20 +226,23 @@ class Grade:
 		self.calculate_towards_avg_grade = int(values[10])
 		self.added = values[11]
 		self.description = values[12]
-		#self.absolute_value = values[13]
+		# self.absolute_value = values[13]
 
 	def display(self):
-		"""Returns a text representation of the grade, which can be used for display."""
+		"""Returns a text representation of the grade,
+		which can be used for display.
+		"""
 		display_string = "["
-		display_string += self.date + ", " + self.day_of_the_week + "] - <" + self.school_subject + "> ("
-		display_string += self.grade_value + ")"
+		display_string += self.date + ", " + self.day_of_the_week + "] - <"
+		display_string += self.school_subject + "> (" + self.grade_value + ")"
 		if self.weight != -1:
 			display_string += " - Waga: " + str(self.weight)
 		if self.calculate_towards_avg_grade != -1:
 			display_string += ". Liczy się: "
 			display_string += {0: "Nie", 1: "Tak"}[self.calculate_towards_avg_grade]
 		display_string += ". Typ oceny: " + self.category
-		display_string += ". Dodał/a " + self.teacher + ", id w Librusie: " + str(self.grade_id) + "."
+		display_string += ". Dodał/a " + self.teacher + ", id w Librusie: "
+		display_string += str(self.grade_id) + "."
 		if self.description:
 			display_string += " Opis: "+self.description
 		display_string += "\n"
@@ -246,25 +272,35 @@ class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
 
 	Functions:
-	parse_grade(grade) - Parses BeautifulSoup grades provided by Parser.parse_html. Returns a list of values. 
+	parse_grade(grade) - Parses BeautifulSoup grades provided by Parser.parse_html
+	Returns a list of values.
 	parse_html(html) - Parses HTML into BeautifulSoup grades.
 	"""
 	def __init__(self):
 		pass
 
 	def parse_grade(self, grade):
-		"""parse_grade - Parses a grade object provided by BeautifulSoup [don't confuse with the class Grade]. Returns a list of values."""
-		school_subject = repr(grade.findParents('tr')[0]).split('/tree_colapsed.png"/>')[1].split('<td>')[1].split('</td>')[0]
+		"""parse_grade - Parses a grade object provided by BeautifulSoup
+		[don't confuse with the class Grade].
+		Returns a list of values.
+		"""
+		school_subject = repr(grade.findParents('tr')[0])
+		school_subject = school_subject.split('/tree_colapsed.png"/>')[1]
+		school_subject = school_subject.split('<td>')[1].split('</td>')[0]
 		grade_id = repr(grade).split("szczegoly/")[1].split('" title')[0]
 		grade_value = str(grade.text)
 		category = repr(grade).split("Kategoria: ")[1].split('&lt;')[0]
 		date = repr(grade).split("Data: ")[1].split('&lt;')[0].split(' (')[0]
-		day_of_the_week = repr(grade).split("Data: ")[1].split('&lt;')[0].split(' (')[1].split(')')[0]
+		day_of_the_week = repr(grade).split("Data: ")[1].split('&lt;')[0]
+		day_of_the_week = day_of_the_week.split(' (')[1].split(')')[0]
 		teacher = repr(grade).split('Nauczyciel: ')[1].split('&lt;')[0]
 		added = repr(grade).split('Dodał: ')[1].split('&lt;')[0]
 
 		try:
-			calculate_towards_avg_grade = {'tak': True, 'nie': False}[repr(grade).split('średniej: ')[1].split('&lt;')[0]]
+			temp_types = {'tak': True, 'nie': False}
+			calculate_towards_avg_grade = repr(grade).split('średniej: ')
+			calculate_towards_avg_grade = calculate_towards_avg_grade[1].split('&lt;')
+			calculate_towards_avg_grade = temp_types[calculate_towards_avg_grade[0]]
 			has_average = True
 		except:
 			calculate_towards_avg_grade = -1
@@ -276,28 +312,35 @@ class Parser:
 		except:
 			weight = -1
 			has_weight = False
-		
+
 		if 'ksztaltujace' in grade_id:
 			grade_id = grade_id.split('ksztaltujace/')[1]
 			grade_type = "ShapingGrade"
 			grade_numtype = 3
 		else:
+			temp_types = {0: "DescriptiveGrade", 1: "MidtermGrade", 2: "StandardGrade"}
 			grade_numtype = has_weight + has_average
-			grade_type = {0: "DescriptiveGrade", 1: "MidtermGrade", 2: "StandardGrade"}[grade_numtype]
+			grade_type = temp_types[grade_numtype]
 
 		try:
 			description = repr(grade).split('Ocena: ')[1].split('&lt;')[0]
 		except:
 			description = ""
 
-		return [grade_id, grade_numtype, grade_type, school_subject, grade_value, date, day_of_the_week, category,
-		weight, teacher, calculate_towards_avg_grade, added, description]
+		return [
+				grade_id, grade_numtype, grade_type, school_subject, grade_value, date,
+				day_of_the_week, category, weight, teacher,
+				calculate_towards_avg_grade, added, description
+		]
 
 	def parse_html(self, html):
-		"""parse_html(html) - parses html and returns a list of soup grades (used in Parser.parse_grade)"""
+		"""parse_html(html) - parses html and returns a list of soup grades
+		(used in Parser.parse_grade)
+		"""
 		soup = BeautifulSoup(html, "html.parser")
 		soupGrades = soup.findAll("a", {"class": "ocena"})
 		return soupGrades
+
 
 def read_file(name):
 	"""read_file(name) - opens a file and returns its content."""
@@ -306,6 +349,7 @@ def read_file(name):
 	tFile.close()
 	return "/n".join(tContent)
 
+
 def save_file(name, content):
 	"""save_file(name, content) - opens a file and writes into it."""
 	tFile = open(name, "w", encoding="utf8")
@@ -313,12 +357,14 @@ def save_file(name, content):
 	tFile.close()
 	return True
 
+
 objParser = Parser()
 objDziennik = GradeBook()
 html = read_file("main.html")
 oceny = objParser.parse_html(html)
 for i in range(len(oceny)):
-	if i - 1: # first grade is no. 0, and doesnt parse due to librus being dumb and putting a >testgrade in html source
+	if i - 1:   # first grade is no. 0, and doesnt parse due to librus being dumb
+				#  and putting a >testgrade in html source
 		objDziennik.add(Grade(objParser.parse_grade(oceny[i-1])))
 
 objDziennik.sort_by_grade()
@@ -330,7 +376,7 @@ for przedmiot, ocena in objDziennik.midterm_grades.items():
 	print(objDziennik.calculate_average(przedmiot))
 	for i in ocena:
 		print(i.display())
-	#print(przedmiot)
-	#print(ocena)
+	# print(przedmiot)
+	# print(ocena)
 
 save_file("oceny.txt", oceny_txt)
