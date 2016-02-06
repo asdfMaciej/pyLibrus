@@ -1,5 +1,7 @@
 from bs4 import BeautifulSoup
 import pickle
+import requests
+import time
 
 
 class GradeBook:
@@ -24,7 +26,6 @@ class GradeBook:
 	calculate_average(subject) - Calculates average of a specified subject,
 								taking weights in account.
 	"""
-
 	def __init__(self):
 		"""Initializes the GradeBook by initializing variables."""
 		self.grades = []
@@ -396,7 +397,7 @@ class FileHandler:
 
 		Parameters:
 		specified_class (object) - the class that should be saved
-		name - the filename
+		name (string) - the filename
 		"""
 		temp_file = open(name, "wb")
 		pickle.dump(specified_class, temp_file)
@@ -408,7 +409,7 @@ class FileHandler:
 		Utilises the pickle module in order to read.
 
 		Parameters:
-		name - the filename
+		name (string) - the filename
 		"""
 		temp_file = open(name, "rb")
 		temp_pickle = pickle.load(temp_file)
@@ -416,10 +417,78 @@ class FileHandler:
 		return temp_pickle
 
 
+class LibrusFetcher:
+	"""LibrusFetcher - a Librus web fetcher. Downloads the required webpages.
+
+	Variables:
+	url_grades (string) - the URL to grades page on Librus.
+	url_login (string) - the URL to login page on Librus.
+	headers (dictionary) - headers used in page request.
+	payload (dictionary) - POST data used in initial login.
+	cookies (dictionary) - cookies used in initial login.
+
+	Functions:
+	fetch_grades(login, password) - fetches the grades and returns the HTML.
+	"""
+	def __init__(self):
+		self.url_grades = 'https://synergia.librus.pl/przegladaj_oceny/uczen'
+		self.url_login = 'https://synergia.librus.pl/loguj'
+
+		useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36'
+		useragent += '(KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'
+		self.headers = {
+			'User-Agent': useragent,
+			'Content-Type': 'application/x-www-form-urlencoded',
+			'Referer': 'https://synergia.librus.pl/loguj',
+			'Accept-Encoding': 'gzip, deflate',
+			'Connection': 'keep-alive'
+		}
+		self.payload = {
+			'login': '',
+			'passwd': '',
+			'ed_pass_keydown': '',
+			'ed_pass_keyup': '',
+			'captcha': '',
+			'jest_captcha': '1',
+			'czy_js': '2'
+		}
+
+		self.cookies = {
+			'_ga': 'GA1.2.2085668300.1439744410',
+			'TestCookie': '1'
+		}
+
+	def fetch_grades(self, login, password):
+		"""fetch_grades(login, password) - fetches the grades and returns the HTML.
+
+		Parameters:
+		login (string) - login for librus
+		password (string) - password for librus
+		"""
+		self.payload['login'] = login
+		self.payload['passwd'] = password
+		with requests.Session() as session:
+			response = session.post(
+				self.url_login,
+				data=self.payload, headers=self.headers,
+				cookies=self.cookies
+			)
+			time.sleep(2)
+			response = session.get(self.url_grades, headers=self.headers)
+
+			return response.text
+
+
 objFile = FileHandler()
 objParser = Parser()
 objDziennik = GradeBook()
-html = objFile.read_file("main.html")
+objURL = LibrusFetcher()
+
+lNick = input("Username:")
+lPass = input("Password:")
+print("Loading...")
+html = objURL.fetch_grades(lNick, lPass)
+print("Loaded!")
 oceny = objParser.parse_html(html)
 for i in range(len(oceny)):
 	if i - 1:   # first grade is no. 0, and doesnt parse due to librus being dumb
@@ -435,8 +504,6 @@ for przedmiot, ocena in objDziennik.midterm_grades.items():
 	print(objDziennik.calculate_average(przedmiot))
 	for i in ocena:
 		print(i.display())
-	# print(przedmiot)
-	# print(ocena)
 
 objFile.save_file("oceny.txt", oceny_txt)
 objFile.class_to_file(objDziennik, "oceny.pickle")
