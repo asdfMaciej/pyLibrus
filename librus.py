@@ -1,4 +1,5 @@
 from bs4 import BeautifulSoup
+import pickle
 
 
 class GradeBook:
@@ -33,7 +34,7 @@ class GradeBook:
 		self.midterm_grades = {}
 
 	def add(self, grade):
-		"""Add a grade into the GradeBook.
+		"""add(grade) - Add a grade into the GradeBook.
 
 		Parameters:
 		grade - a Grade() object.
@@ -54,40 +55,43 @@ class GradeBook:
 		self.subject_grades[grade[3]].append(grade)
 
 	def display(self):
-		"""Return the grades from the GradeBook, allowing to display them."""
+		"""display() - Return the grades from the GradeBook,
+		allowing to display them.
+		"""
 		display_text = ""
 		for grade in self.grades:
 			display_text += grade.display()
 		return display_text
 
 	def sort_by_weight(self, reverse=False):
-		"""Sort the grades by their weight.
+		"""sort_by_weight(reverse=False) - Sort the grades by their weight.
 
-		Keyword arguments:
+		Keyword parameters:
 		reverse (bool) - whether to reverse the list or not. (default False)
 		"""
 		self.grades.sort(key=lambda x: int(x[8]), reverse=reverse)
 
 	def sort_by_date(self, reverse=False):
-		"""Sort the grades by their date.
+		"""sort_by_date(reverse=False) - Sort the grades by their date.
 
-		Keyword arguments:
+		Keyword parameters:
 		reverse (bool) - whether to reverse the list or not. (default False)
 		"""
 		self.grades.sort(key=lambda x: str(x[5]), reverse=reverse)
 
 	def sort_by_grade(self, reverse=False):
-		"""Sort the grades by their value.
+		"""sort_by_grade(reverse=False) - Sort the grades by their value.
 
-		Keyword arguments:
+		Keyword parameters:
 		reverse (bool) - whether to reverse the list or not. (default False)
 		"""
 		self.grades.sort(key=lambda x: int(x[13]), reverse=reverse)
 
 	def calculate_average(self, subject):
-		"""Calculates an average of a specified subject, taking weights in account.
+		"""calculate_average(subject) -
+		Calculates an average of a specified subject, taking weights in account.
 
-		Arguments:
+		Parameters:
 		subject (string) - The mentioned subject.
 		"""
 		if subject not in self.subjects:
@@ -201,12 +205,12 @@ class Grade:
 		return self.values[index]
 
 	def __str__(self):
-		"""Allows printing the Grade without any issues."""
+		"""Allows printing the Grade in a str() manner."""
 		return self.display()
 
 	def update(self, values):
-		"""Updates the variables in Grade class with ones provided in arguments.
-			Called on initialization.
+		"""update(values) - Updates the variables in Grade class with
+		ones provided in arguments. Called on initialization.
 
 		Parameters:
 		values (list) - A list of values, provided by Parser.parse_grade.
@@ -229,7 +233,7 @@ class Grade:
 		# self.absolute_value = values[13]
 
 	def display(self):
-		"""Returns a text representation of the grade,
+		"""display() - Returns a text representation of the grade,
 		which can be used for display.
 		"""
 		display_string = "["
@@ -249,7 +253,9 @@ class Grade:
 		return display_string
 
 	def set_absolute_values(self):
-		"""Turns the grade_value into absolute_value. Called on initialization"""
+		"""set_absolute_values() - Turns the grade_value into absolute_value.
+		Called on initialization
+		"""
 		if self.grade_value in ("-", "+", "T", "np"):
 			self.absolute_value = 0
 		else:
@@ -264,7 +270,7 @@ class Grade:
 				self.absolute_value = int(self.grade_value)
 
 	def return_values(self):
-		"""Returns the internal list of values."""
+		"""return_values() - Returns the internal list of values."""
 		return self.values
 
 
@@ -280,7 +286,7 @@ class Parser:
 		pass
 
 	def parse_grade(self, grade):
-		"""parse_grade - Parses a grade object provided by BeautifulSoup
+		"""parse_grade(grade) - Parses a grade object provided by BeautifulSoup
 		[don't confuse with the class Grade].
 		Returns a list of values.
 		"""
@@ -342,25 +348,78 @@ class Parser:
 		return soupGrades
 
 
-def read_file(name):
-	"""read_file(name) - opens a file and returns its content."""
-	tFile = open(name, "r", encoding="utf8")
-	tContent = tFile.readlines()
-	tFile.close()
-	return "/n".join(tContent)
+class FileHandler:
+	"""FileHandler - a file handler. Handles all of file related stuff.
+
+	Functions:
+	read_file(name, mode="r") - opens a file and returns its content.
+	save_file(name, content, mode="w") - opens a file and writes into it.
+	class_to_file(self, specified_class, name) - saves a class into a file.
+	file_to_class(self, specified_class, name) - reads a class from a file.
+	"""
+	def __init__(self):
+		pass
+
+	def read_file(self, name, mode="r"):
+		"""read_file(name) - opens a file and returns its content.
+
+		Parameters:
+		name (string) - the filename.
+
+		Keyword parameters:
+		mode (string) - the mode in which the file should be opened. (default r)
+		"""
+		tFile = open(name, mode, encoding="utf8")
+		tContent = tFile.readlines()
+		tFile.close()
+		return "/n".join(tContent)
+
+	def save_file(self, name, content, mode="w"):
+		"""save_file(name, content, mode="w") - opens a file and writes into it.
+
+		Parameters:
+		name (string) - the filename.
+		content (string) - the content which should be writed.
+
+		Keyword parameters:
+		mode (string) - the mode in which file should be opened. (default w)
+
+		"""
+		tFile = open(name, mode, encoding="utf8")
+		tFile.write(content)
+		tFile.close()
+		return True
+
+	def class_to_file(self, specified_class, name):
+		"""class_to_file(self, specified_class, name) - saves a class into a file.
+		Utilises the pickle module in order to save.
+
+		Parameters:
+		specified_class (object) - the class that should be saved
+		name - the filename
+		"""
+		temp_file = open(name, "wb")
+		pickle.dump(specified_class, temp_file)
+		temp_file.close()
+		return True
+
+	def file_to_class(self, name):
+		"""file_to_class(self, specified_class, name) - reads a class from a file.
+		Utilises the pickle module in order to read.
+
+		Parameters:
+		name - the filename
+		"""
+		temp_file = open(name, "rb")
+		temp_pickle = pickle.load(temp_file)
+		temp_file.close()
+		return temp_pickle
 
 
-def save_file(name, content):
-	"""save_file(name, content) - opens a file and writes into it."""
-	tFile = open(name, "w", encoding="utf8")
-	tFile.write(content)
-	tFile.close()
-	return True
-
-
+objFile = FileHandler()
 objParser = Parser()
 objDziennik = GradeBook()
-html = read_file("main.html")
+html = objFile.read_file("main.html")
 oceny = objParser.parse_html(html)
 for i in range(len(oceny)):
 	if i - 1:   # first grade is no. 0, and doesnt parse due to librus being dumb
@@ -379,4 +438,5 @@ for przedmiot, ocena in objDziennik.midterm_grades.items():
 	# print(przedmiot)
 	# print(ocena)
 
-save_file("oceny.txt", oceny_txt)
+objFile.save_file("oceny.txt", oceny_txt)
+objFile.class_to_file(objDziennik, "oceny.pickle")
