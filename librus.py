@@ -11,11 +11,11 @@ class GradeBook:
 	grades (list) - The list of grades.
 	subjects (list) - The list of school subjects.
 	teachers (dictionary) - A dictionary of teachers.
-								{subject:teacher}
+		{subject:teacher}
 	subject_grades (dictionary) - A list of grades per subject.
-								{subject:[grades]}
+		{subject:[grades]}
 	midterm_grades (dictionary) - A list of midterm grades per subject.
-								{subject:[grades]}
+		{subject:[grades]}
 
 	Functions:
 	add(grade) - Add a grade into the GradeBook.
@@ -24,7 +24,7 @@ class GradeBook:
 	sort_by_date(reverse=False) - Sort the grades by their date.
 	sort_by_grade(reverse=False) - Sort the grades by their value.
 	calculate_average(subject) - Calculates average of a specified subject,
-								taking weights in account.
+		taking weights in account.
 	"""
 	def __init__(self):
 		"""Initializes the GradeBook by initializing variables."""
@@ -113,6 +113,39 @@ class GradeBook:
 			temp_count += x.weight
 
 		return float(temp_sum/temp_count)
+
+
+class EventCalendar:
+	"""EventCalendar - Stores events. Allows displaying all of them at once.
+
+	Variables:
+	events (list) - The list of events.
+
+	Functions:
+	add(event) - Add an event into the EventCalendar.
+	display() - Return the events from the EventCalendar,
+		allowing to display them.
+	"""
+	def __init__(self):
+		"""Initializes the EventCalendar by initializing variables."""
+		self.events = []
+
+	def add(self, event):
+		"""add(event) - Add an event into the EventCalendar.
+
+		Parameters:
+		event - a Event() object.
+		"""
+		self.events.append(event)
+
+	def display(self):
+		"""display() - Return the events from the EventCalendar,
+		allowing to display them.
+		"""
+		display_text = ""
+		for event in self.events:
+			display_text += event.display()
+		return display_text
 
 
 class Grade:
@@ -275,21 +308,169 @@ class Grade:
 		return self.values
 
 
+class Event:
+	"""Event - An event object. Stores events and all of their data.
+	Allows displaying it with a function call.
+
+	Description:
+	"if it ain't broke, don't fix it"
+
+	Variables:
+	values (list) - provided by Parser class, a list of values:
+		[0] - description_additional
+		[1] - date
+		[2] - teacher
+		[3] - absence_period
+		[4] - day
+		[5] - month
+		[6] - year
+		[7] - event_type
+		[8] - event_numtype
+		[9] - description
+		[10] - event_id
+	event_numtype (int) - type of the Event:
+		0 - Holiday
+		1 - Absence [as in teacher]
+		2 - Parent-teacher meeting
+		3 - Substitute [as in teacher]
+		4 - Exam
+		5 - Test
+		6 - Lesson observation
+	event_type (str) - type of the Event, corresponds to event_numtype:
+		Dzień wolny, (0)
+		Nieobecność, (1)
+		Wywiadówka, (2)
+		Zastępstwo, (3)
+		Sprawdzian, (4)
+		Kartkówka, (5)
+		Obserwacja lekcji (6)
+	date (str) - date in which the event was inputed in Librus
+	teacher (str) - teacher in mentioned event. Works in numtypes
+		1, 2, 3, 4, 5, 6.
+		In 1, it's the absent teacher.
+		In 2, it's the class teacher, which put the event in Librus.
+		In 3, it's the teacher who is a Substitute.
+		In 4-6, it's the lesson teacher.
+	absence_period (str) - lesson number of a given event or the
+		absence period of a teacher, for ex. (4 do 6)
+		Works on numtypes 4, 5, 6 and sometimes 1.
+		4, 5, 6 - the lesson number of the event.
+		1 - the lesson numbers the teacher won't be in school, assuming
+		the absence is only partial [not full day]. If it's a full day,
+		absence_period will be "".
+	day (int) - day of the event
+	month (str) - month of the event, in Polish. for ex. Październik
+	year (int) - year of the event
+	description (str) - description of the event, on numtypes 4/5/6
+	description_additional (str) - additional description
+	event_id (int) - id of event in librus. Defaults to 0 when couldn't be found
+
+	Functions:
+	__init__(values) - Accepts the values from Parser.parse_events and
+	puts them into an array. Initializing method.
+	update(values) - Updates the values with new ones. Done on initialization.
+	display() - Returns a text representation of the event,
+	which can be used for display.
+	"""
+	def __init__(self, values):
+		"""__init__(values) - Accepts the values from Parser.parse_events and
+		puts them into an array. Initializing method.
+
+		Parameters:
+		values (list) - The list of values, provided by Parser.parse_events
+		"""
+		self.values = []
+
+		self.description_additional = ""
+		self.date = ""
+		self.teacher = ""
+		self.absence_period = ""
+		self.day = 0
+		self.month = ""
+		self.year = 0
+		self.event_type = ""
+		self.event_numtype = 0
+		self.description = ""
+		self.event_id = 0
+
+		self.update(values)
+
+	def __getitem__(self, index):
+		"""Allows sorting with .sort()."""
+		return self.values[index]
+
+	def __str__(self):
+		"""Allows printing the Event in a str() manner."""
+		return self.display()
+
+	def update(self, values):
+		"""update(values) - Updates the values with new ones.
+		Called on initialization.
+
+		Parameters:
+		values (list) - The list of values, provided by Parser.parse_events
+		"""
+		self.values = values
+
+		self.description_additional = values[0]
+		self.date = values[1]
+		self.teacher = values[2]
+		self.absence_period = values[3]
+		self.day = int(values[4])
+		self.month = values[5]
+		self.year = int(values[6])
+		self.event_type = values[7]
+		self.event_numtype = int(values[8])
+		self.description = values[9]
+		self.event_id = int(values[10])
+
+	def display(self):
+		"""display() - Returns a text representation of the event,
+		which can be used for display.
+		"""
+		temp_date = str(self.day) + ", " + str(self.month) + " " + str(self.year)
+		if self.event_numtype == 0:  # Dni wolne
+			display_string = "["+temp_date+"]"+": "+self.event_type+" - "
+			display_string += self.description_additional
+		elif self.event_numtype in (2, 4, 5):  # Kartkowki, sprawdziany i wywiadowki
+			display_string = "["+temp_date+"]"+": "+self.event_type + " z "+self.teacher
+			if self.event_numtype != 2:
+				display_string += " na lekcji nr. "+self.absence_period
+			display_string += ": " + self.description
+		elif self.event_numtype == 1:  # Nieobecnosci
+			display_string = "["+temp_date+"]: " + self.event_type+" - "+self.teacher
+			if self.absence_period:
+				display_string += ", od lekcji "+self.absence_period+"."
+		elif self.event_numtype == 3:  # zastepstwa
+			display_string = "["+temp_date+"]: "+self.event_type+" z "+self.teacher
+			display_string += " na lekcji nr. "+self.date+" - "
+			display_string += self.description_additional
+		elif self.event_numtype == 6:  # obserwacje lekcji
+			display_string = "["+temp_date+"]: "+self.event_type+" - "+self.description
+		display_string += "\n"
+		return display_string
+
+
 class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
 
 	Functions:
-	parse_grade(grade) - Parses BeautifulSoup grades provided by Parser.parse_html
-	Returns a list of values.
-	parse_html(html) - Parses HTML into BeautifulSoup grades.
+	parse_grade(grade) - Parses BeautifulSoup grades provided by
+	Parser.parse_html_grade. Returns a list of values.
+	parse_events(events, html) - Parses HTML and BeautifulSoup events provided by
+	Parser.parse_html_table, returns a list of values.
+	parse_html_grade(html) - Parses HTML into BeautifulSoup grades.
+	parse_html_table(html) - Parses HTML into BeautifulSoup events.
 	"""
 	def __init__(self):
 		pass
 
 	def parse_grade(self, grade):
 		"""parse_grade(grade) - Parses a grade object provided by BeautifulSoup
-		[don't confuse with the class Grade].
-		Returns a list of values.
+		[don't confuse with the class Grade]. Returns a list of values.
+
+		Parameters:
+		grade (object) - provided by Parser.parse_html_grade.
 		"""
 		school_subject = repr(grade.findParents('tr')[0])
 		school_subject = school_subject.split('/tree_colapsed.png"/>')[1]
@@ -340,12 +521,157 @@ class Parser:
 				calculate_towards_avg_grade, added, description
 		]
 
-	def parse_html(self, html):
-		"""parse_html(html) - parses html and returns a list of soup grades
+	def parse_events(self, events, html):
+		"""parse_events(events, html) - parses HTML and BeautifulSoup events
+		provided by Parser.parse_html_table and returns a list of values.
+
+		Parameters:
+		events (object) - provided by Parser.parse_html_table.
+		html (string) - the HTML of events webpage.
+		"""
+		events_list = []
+		parsed_html = events
+		td_list = []
+		types_dict = {
+			'style="background-color: #FF7878; cursor: pointer;"': 0,  # dni wolne
+			'style="background-color: #FF7878; "': 1,  # nieobecnosci
+			'style="background-color: #abcdef; "': 2,  # wywiadowki
+			'style="background-color: #6A9604; "': 3,  # zastepstwa
+			'style="background-color: #DC143C; cursor: pointer;"': 4,  # sprawdziany
+			'style="background-color: #FF8C00; cursor: pointer;"': 5,  # kartkowki
+			'style="background-color: #BA55D3; cursor: pointer;"': 6   # obserwacje
+		}
+		types_dict_string = {
+			0: "Dzień wolny",
+			1: "Nieobecność",
+			2: "Wywiadówka",
+			3: "Zastępstwo",
+			4: "Sprawdzian",
+			5: "Kartkówka",
+			6: "Obserwacja lekcji"
+		}
+		dodane_id = {}
+
+		for div in parsed_html:
+			td_list.append(div.find_all('td'))
+
+		for i in range(len(td_list)):
+			for td in td_list[i]:
+				tekst = repr(td.parent.parent.parent.parent)
+				if '</tr>' not in repr(tekst):
+					continue
+				for temp_event in repr(tekst).split('</tr>'):
+					absence_period = ""
+					event_numtype = 0
+					month = html.split('selected="selected" >')[1].split('</')[0]
+					day = tekst.split('numer-dnia">')[1].split('</div>')[0]
+					year = html.split('selected="selected" > ')[1].split('</')[0]
+					if 'szczegoly_wolne' in temp_event:
+						event_id = temp_event.split('/szczegoly_wolne/')[1].split("'")[0][:-2]
+					elif 'szczegoly' in temp_event:
+						event_id = temp_event.split('terminarz/szczegoly/')[1].split("'")[0][:-2]
+					else:
+						event_id = 0
+
+					temp_list = list(types_dict)
+					temp_list.append("#6A9604")
+					for abc in temp_list:
+						if abc in temp_event:
+							if abc != "#6A9604":
+								event_numtype = types_dict[abc]
+							else:
+								event_numtype = 3
+					event_type = types_dict_string[event_numtype]
+
+					if event_numtype in (2, 4, 5, 6):
+						teacher = temp_event.split('Nauczyciel: ')[1].split('&lt;')[0]
+					else:
+						teacher = ""
+
+					if event_numtype in (5, 4, 2, 6):
+						temp_desc = temp_event.split('&gt;Opis: ')[1].split('onclick')[0]
+						temp_desc = '\n'.join(temp_desc.split('<br/>')[:-1])
+						temp_desc = temp_desc.split('&lt;br /&gt;')[:-1]
+						description = ' '.join(temp_desc)
+						date = temp_event.split('Data dodania: ')[1].split('"')[0]
+					else:
+						description = ""
+						date = ""
+
+					if event_numtype in (0, 1, 2, 4, 5):
+						try:
+							if '</td>' in temp_event:
+								temp_desc = temp_event.split('">')[-1].split("</td>")
+								temp_desc = temp_desc[0].replace('<br/>', '\n')
+								description_additional = temp_desc
+						except:
+							description_additional = ""
+					else:
+						description_additional = ""
+
+					if event_numtype == 1:
+						teacher = temp_event.split('Nauczyciel: ')[1].split('</td>')[0]
+						if '<br/>' in teacher:
+							teacher, absence_period = teacher.split('<br/>')
+							absence_period = absence_period.split('lekcji: ')[1]
+							absence_period = absence_period[:-1]  # removes trailing space
+					else:
+						absence_period = ""
+
+					if event_numtype in (4, 5, 6):
+						try:
+							absence_period = description_additional.split('lekcji: ')[1]
+							absence_period = absence_period.split(' ')[0]
+						except:
+							absence_period = ""
+
+					if event_numtype == 3:
+						teacher = temp_event.split('Zastępstwo z ')[1].split(' na')[0]
+						date = temp_event.split('nr: ')[1].split(' (')[0]
+						description_additional = temp_event.split('(')[1].split(')')[0]
+
+					if description_additional not in dodane_id:
+						dodane_id[description_additional] = [day]
+						events_list.append(
+							[
+								description_additional, date, teacher,
+								absence_period, day, month, year, event_type,
+								event_numtype, description, event_id
+							]
+						)
+
+					elif day not in dodane_id[description_additional]:
+						dodane_id[description_additional].append(day)
+						events_list.append(
+							[
+								description_additional, date, teacher,
+								absence_period, day, month, year, event_type,
+								event_numtype, description, event_id
+							]
+						)
+
+		return events_list
+	
+	def parse_html_grade(self, html):
+		"""parse_html_grade(html) - parses html and returns a list of soup grades
 		(used in Parser.parse_grade)
+
+		Parameters:
+		html (string) - the HTML of grades website.
 		"""
 		soup = BeautifulSoup(html, "html.parser")
 		soupGrades = soup.findAll("a", {"class": "ocena"})
+		return soupGrades
+
+	def parse_html_table(self, html):
+		"""parse_html_table(html) - parses html and returns a list of soup tables
+		(used in Parser.parse_event)
+
+		Parameters:
+		html (string) - the HTML of events website.
+		"""
+		soup = BeautifulSoup(html, "html.parser")
+		soupGrades = soup.findAll("div", {"class": "kalendarz-dzien"})
 		return soupGrades
 
 
@@ -422,6 +748,7 @@ class LibrusFetcher:
 
 	Variables:
 	url_grades (string) - the URL to grades page on Librus.
+	url_events (string) - the URL to events page on Librus.
 	url_login (string) - the URL to login page on Librus.
 	headers (dictionary) - headers used in page request.
 	payload (dictionary) - POST data used in initial login.
@@ -429,9 +756,13 @@ class LibrusFetcher:
 
 	Functions:
 	fetch_grades(login, password) - fetches the grades and returns the HTML.
+	fetch_events(login, password, month, year) - fetches events
+		and returns the HTML.
 	"""
 	def __init__(self):
+		"""__init__() - initializes the class by declaring variables."""
 		self.url_grades = 'https://synergia.librus.pl/przegladaj_oceny/uczen'
+		self.url_events = 'https://synergia.librus.pl/terminarz'
 		self.url_login = 'https://synergia.librus.pl/loguj'
 
 		useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36'
@@ -459,7 +790,7 @@ class LibrusFetcher:
 		}
 
 	def fetch_grades(self, login, password):
-		"""fetch_grades(login, password) - fetches the grades and returns the HTML.
+		"""fetch_grades(login, password) - fetches grades and returns the HTML.
 
 		Parameters:
 		login (string) - login for librus
@@ -475,35 +806,139 @@ class LibrusFetcher:
 			)
 			time.sleep(2)
 			response = session.get(self.url_grades, headers=self.headers)
+		return response.text
 
-			return response.text
+	def fetch_events(self, login, password, month, year):
+		"""fetch_events(login, password, month, year)
+			fetches events and returns the HTML.
+
+		Parameters:
+		login (string) - login for librus
+		password (string) - password for librus
+		month (string) - specified month, 1-12 without prequeling zero
+			for ex. 1 instead of 01
+		year (string) - specified year in a YYYY format
+		"""
+		self.payload['login'] = login
+		self.payload['passwd'] = password
+		with requests.Session() as session:
+			response = session.post(
+				self.url_login,
+				data=self.payload,
+				headers=self.headers,
+				cookies=self.cookies
+			)
+
+			time.sleep(2)
+
+			mini_headers = self.headers
+			mini_headers['Referer'] = 'https://synergia.librus.pl/terminarz'
+			mini_headers['Origin'] = 'https://synergia.librus.pl'
+			mini_payload = {'miesiac': month, 'rok': year}
+
+			response = session.post(
+				self.url_events,
+				headers=mini_headers,
+				data=mini_payload,
+				params=mini_payload
+			)
+			return(response.text)
 
 
-objFile = FileHandler()
-objParser = Parser()
-objDziennik = GradeBook()
-objURL = LibrusFetcher()
+class Librus:
+	"""Librus - allows for control of everything.
 
-lNick = input("Username:")
-lPass = input("Password:")
-print("Loading...")
-html = objURL.fetch_grades(lNick, lPass)
-print("Loaded!")
-oceny = objParser.parse_html(html)
-for i in range(len(oceny)):
-	if i - 1:   # first grade is no. 0, and doesnt parse due to librus being dumb
-				#  and putting a >testgrade in html source
-		objDziennik.add(Grade(objParser.parse_grade(oceny[i-1])))
+	Variables:
+	file_handler (FileHandler) - the internal FileHandler
+	parser (Parser) - the internal Parser
+	grade_book (GradeBook) - the internal GradeBook
+	event_calendar (EventCalendar) - the internal EventCalendar
+	librus_fetcher (LibrusFetcher) - the internal LibrusFetcher
+	login (string) - login to Librus
+	password (string) - password to Librus
 
-objDziennik.sort_by_grade()
-oceny_txt = objDziennik.display()
-print(oceny_txt)
+	Functions:
+	update_event_calendar() - Updates the internal event_calendar
+	update_grade_book() - Updates the internal grade_book
+	"""
+	def __init__(self):
+		self.file_handler = FileHandler()
+		self.parser = Parser()
+		self.grade_book = GradeBook()
+		self.event_calendar = EventCalendar()
+		self.librus_fetcher = LibrusFetcher()
+		self.login = ""
+		self.password = ""
 
-for przedmiot, ocena in objDziennik.midterm_grades.items():
-	print(przedmiot)
-	print(objDziennik.calculate_average(przedmiot))
-	for i in ocena:
-		print(i.display())
+	def update_event_calendar(self):
+		"""update_event_calendar() - Updates the internal event_calendar.
+		Requires user input.
+		"""
+		print("Choose the method that will be used for getting events data:")
+		print("a - Reading from cached data")
+		print("b - Getting data straight from Librus")
+		while True:
+			choice = input("Pick: ").lower()
+			if choice in ('a', 'b'):
+				break
+			else:
+				print("Invalid answer - "+choice)
 
-objFile.save_file("oceny.txt", oceny_txt)
-objFile.class_to_file(objDziennik, "oceny.pickle")
+		print("---")
+		if choice == 'a':
+			pass
+		elif choice == 'b':
+			print("Picked getting data straight from Librus. Updating...")
+			if self.login and self.password:
+				pass
+			else:
+				self.login = input("Input your username:")
+				self.password = input("Input your password:")
+
+			month = input("Input desired month (1-12, without the prequeling zero):")
+			year = input("Input desired year (YYYY):")
+			html = self.librus_fetcher.fetch_events(
+				self.login, self.password, month, year
+			)
+			temp_parse = self.parser.parse_html_table(html)
+			temp_parse = self.parser.parse_events(temp_parse, html)
+			for ev in temp_parse:
+				self.event_calendar.add(Event(ev))
+			print("Done.")
+
+	def update_grade_book(self):
+		"""update_grade_book() - Updates the internal grade_book.
+		Requires user input.
+		"""
+		print("Choose the method that will be used for getting grades data:")
+		print("a - Reading from cached data")
+		print("b - Getting data straight from Librus")
+		while True:
+			choice = input("Pick: ").lower()
+			if choice in ('a', 'b'):
+				break
+			else:
+				print("Invalid answer - "+choice)
+	
+		print("---")
+		if choice == 'a':
+			print("Picked reading from cached data.")
+			self.grade_book = self.file_handler.file_to_class("oceny.pickle")
+			print("Done.")
+
+		elif choice == 'b':
+			print("Picked getting data straight from Librus. Updating...")
+			self.login = input("Input your username:")
+			self.password = input("Input your password:")
+			html = self.librus_fetcher.fetch_grades(self.login, self.password)
+			oceny = self.parser.parse_html_grade(html)
+
+			for i in range(len(oceny)):
+				if i - 1:   # first grade is a test grade that doesnt parse, so -1
+					self.grade_book.add(Grade(self.parser.parse_grade(oceny[i-1])))
+			print("Done.")
+
+
+objLibrus = Librus()
+objLibrus.update_event_calendar()
+print(objLibrus.event_calendar.display())
