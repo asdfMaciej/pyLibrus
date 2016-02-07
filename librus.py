@@ -883,10 +883,16 @@ class Librus:
 				break
 			else:
 				print("Invalid answer - "+choice)
-
 		print("---")
+
 		if choice == 'a':
-			pass
+			print("Picked reading from cached data.")
+			month = input("Input desired month (1-12, without the prequeling zero):")
+			year = input("Input desired year (YYYY):")
+			filename = "events"+month+"_"+year+".pickle"
+			self.event_calendar = self.file_handler.file_to_class(filename)
+			print("Done.")
+
 		elif choice == 'b':
 			print("Picked getting data straight from Librus. Updating...")
 			if self.login and self.password:
@@ -904,6 +910,8 @@ class Librus:
 			temp_parse = self.parser.parse_events(temp_parse, html)
 			for ev in temp_parse:
 				self.event_calendar.add(Event(ev))
+			filename = "events"+month+"_"+year+".pickle"
+			self.file_handler.class_to_file(self.event_calendar, filename)
 			print("Done.")
 
 	def update_grade_book(self):
@@ -936,6 +944,7 @@ class Librus:
 			for i in range(len(oceny)):
 				if i - 1:   # first grade is a test grade that doesnt parse, so -1
 					self.grade_book.add(Grade(self.parser.parse_grade(oceny[i-1])))
+			self.grade_book.class_to_file(self.event_calendar, "grades.pickle")
 			print("Done.")
 
 
