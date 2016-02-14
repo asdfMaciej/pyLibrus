@@ -169,7 +169,7 @@ class EventCalendar:
 	Variables:
 	events (list) - The list of events.
 	events_id (list) - The list of events' IDs.
-	events_day (list) - The list of events' days.
+	events_date (list) - The list of events' dates.
 	old_events (EventCalendar) - The EventCalendar used on last launch.
 	librus (Librus) - Reference to the parent Librus object.
 		Set in Librus object during init.
@@ -188,7 +188,8 @@ class EventCalendar:
 		"""Initializes the EventCalendar by initializing variables."""
 		self.events = []
 		self.events_id = []
-		self.events_day = []
+		self.events_date = []
+		self.events_day_date = []  # selling spaghetti
 		self.old_events = None
 		self.librus = None
 
@@ -201,8 +202,12 @@ class EventCalendar:
 		self.events.append(event)
 		if event[10] not in self.events_id:  # id
 			self.events_id.append(event[10])
-		if event[4] not in self.events_day:  # day
-			self.events_day.append(event[4])
+		if event[1] not in self.events_date:  # day
+			self.events_date.append(event[1])
+		if event[8] == 7:  # canceled lessons
+			day_date = str(event[1])+"_"+str(event[4])  # lesson_day
+			if day_date not in self.events_day_date:
+				self.events_day_date.append(day_date)
 
 	def update_old_events(self, month, year):
 		"""update_old_events(month, year) - Update the old_events with ones
@@ -224,11 +229,17 @@ class EventCalendar:
 		"""
 		temp_event_calendar = EventCalendar()
 		for event in self.events:
-			if str(event.event_id) not in self.old_events.events_id:
-				print(event.event_id)
-				print(event.values)
-				temp_event_calendar.add(event)
-			# elif str(event.day) not in self.old_events.events_day:
+			if event.event_numtype in (2, 3):  # wywiadowka, zastepstwo
+				if str(event.date) not in self.old_events.events_date:
+					temp_event_calendar.add(event)
+			elif event.event_numtype == 7:  # canceled lessons
+				day_date = str(event[1])+"_"+str(event[4])
+				if day_date not in self.old_events.events_day_date:
+					temp_event_calendar.add(event)
+			else:
+				if str(event.event_id) not in self.old_events.events_id:
+					temp_event_calendar.add(event)
+
 			# temp_event_calendar.add(event)
 
 		return temp_event_calendar
@@ -240,6 +251,10 @@ class EventCalendar:
 		display_text = ""
 		for event in self.events:
 			display_text += event.display()
+
+		if not self.events:
+			display_text = "No events found."
+
 		return display_text
 
 	def sort_by_day(self, reverse=False):
@@ -445,6 +460,7 @@ class Event:
 		4 - Exam
 		5 - Test
 		6 - Lesson observation
+		7 - Canceled lessons
 	event_type (str) - type of the Event, corresponds to event_numtype:
 		Dzień wolny, (0)
 		Nieobecność, (1)
@@ -453,6 +469,7 @@ class Event:
 		Sprawdzian, (4)
 		Kartkówka, (5)
 		Obserwacja lekcji (6)
+		Odwołane zajęcia (7)
 	date (str) - date in which the event was inputed in Librus
 	teacher (str) - teacher in mentioned event. Works in numtypes
 		1, 2, 3, 4, 5, 6.
@@ -550,7 +567,7 @@ class Event:
 			display_string = "["+temp_date+"]: " + self.event_type+" - "+self.teacher
 			if self.absence_period:
 				display_string += ", od lekcji "+self.absence_period+"."
-		elif self.event_numtype == 3:  # zastepstwa
+		elif self.event_numtype in (3, 7):  # zastepstwa i odwolane zajecia
 			display_string = "["+temp_date+"]: "+self.event_type+" z "+self.teacher
 			display_string += " na lekcji nr. "+self.date+" - "
 			display_string += self.description_additional
@@ -562,6 +579,13 @@ class Event:
 
 class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
+	Unless completely necessary, don't touch this class.
+	I repeat, don't touch this code.
+	If it works, don't fix it.
+	If it still works.
+	I hope it works.
+	It'll break on slightest modification of Librus, but it works.
+	And that's all that matters.
 
 	Variables:
 	librus (Librus) - Reference to the parent Librus object.
@@ -653,7 +677,7 @@ class Parser:
 			'style="background-color: #DC143C; cursor: pointer;"': 4,  # sprawdziany
 			'style="background-color: #FF8C00; cursor: pointer;"': 5,  # kartkowki
 			'style="background-color: #BA55D3; cursor: pointer;"': 6   # obserwacje
-		}
+		}  # 7 non existant due to another method of detection, see few lines below
 		types_dict_string = {
 			0: "Dzień wolny",
 			1: "Nieobecność",
@@ -661,7 +685,8 @@ class Parser:
 			3: "Zastępstwo",
 			4: "Sprawdzian",
 			5: "Kartkówka",
-			6: "Obserwacja lekcji"
+			6: "Obserwacja lekcji",
+			7: "Odwołane zajęcia"
 		}
 		dodane_id = {}
 
@@ -694,6 +719,10 @@ class Parser:
 								event_numtype = types_dict[abc]
 							else:
 								event_numtype = 3
+					if event_numtype == 3:
+						if "Odwołane zajęcia" in temp_event:
+							event_numtype = 7
+
 					event_type = types_dict_string[event_numtype]
 
 					if event_numtype in (2, 4, 5, 6):
@@ -738,8 +767,11 @@ class Parser:
 						except:
 							absence_period = ""
 
-					if event_numtype == 3:
-						teacher = temp_event.split('Zastępstwo z ')[1].split(' na')[0]
+					if event_numtype in (3, 7):
+						if event_numtype == 3:
+							teacher = temp_event.split('Zastępstwo z ')[1].split(' na')[0]
+						else:
+							teacher = temp_event.split('zajęcia<br>')[1].split(' na')[0]
 						date = temp_event.split('nr: ')[1].split(' (')[0]
 						description_additional = temp_event.split('(')[1].split(')')[0]
 
@@ -1022,7 +1054,10 @@ class Librus:
 			for event in temp_event_calendar.events:
 				self.event_calendar.add(event)  # future proof my code
 			self.event_calendar.librus = self
-			self.event_calendar.update_old_events(month, year)
+			try:
+				self.event_calendar.update_old_events(month, year)
+			except FileNotFoundError:
+				self.old_events = self.event_calendar
 			print("Done.")
 
 		elif choice == 'b':
@@ -1044,7 +1079,11 @@ class Librus:
 				self.event_calendar.add(Event(ev))
 			filename = "events"+month+"_"+year+".pickle"
 			self.event_calendar.librus = self
-			self.event_calendar.update_old_events(month, year)
+			try:
+				self.event_calendar.update_old_events(month, year)
+			except FileNotFoundError:
+				self.old_events = self.event_calendar
+				print("Done!")
 			self.file_handler.class_to_file(self.event_calendar, filename)
 
 			storage_filename = "storage\events_"+month+"_"+year
@@ -1110,6 +1149,10 @@ old_grades = objLibrus.grade_book.compare_old_grades()
 
 old_events.sort_by_day()
 old_grades.sort_by_date()
+objLibrus.grade_book.sort_by_date()
+objLibrus.event_calendar.sort_by_day()
 
 print(old_grades.display())
 print(old_events.display())
+print(objLibrus.grade_book.display())
+print(objLibrus.event_calendar.display())
