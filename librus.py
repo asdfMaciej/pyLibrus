@@ -10,12 +10,18 @@ class GradeBook:
 	Variables:
 	grades (list) - The list of grades.
 	subjects (list) - The list of school subjects.
+	grades_id (list) - The list of grades' IDs.
+	dates (list) - The list of grades' dates.
 	teachers (dictionary) - A dictionary of teachers.
 		{subject:teacher}
 	subject_grades (dictionary) - A list of grades per subject.
 		{subject:[grades]}
 	midterm_grades (dictionary) - A list of midterm grades per subject.
 		{subject:[grades]}
+	old_grades (GradeBook) - The GradeBook used on last launch.
+		Set upon calling update_old_grades().
+	librus (Librus) - Reference to the parent Librus object.
+		Set in Librus object during init.
 
 	Functions:
 	add(grade) - Add a grade into the GradeBook.
@@ -23,16 +29,23 @@ class GradeBook:
 	sort_by_weight(reverse=False) - Sort the grades by their weight.
 	sort_by_date(reverse=False) - Sort the grades by their date.
 	sort_by_grade(reverse=False) - Sort the grades by their value.
-	calculate_average(subject) - Calculates average of a specified subject,
+	calculate_average(subject) - Calculate average of a specified subject,
 		taking weights in account.
+	update_old_grades() - Update old_grades with grades from last launch.
+	compare_old_grades() - Compare old_grades with grades, returns new ones.
+		Returns a GradeBook object.
 	"""
 	def __init__(self):
 		"""Initializes the GradeBook by initializing variables."""
 		self.grades = []
+		self.grades_id = []
+		self.dates = []
 		self.subjects = []
 		self.teachers = {}
 		self.subject_grades = {}
 		self.midterm_grades = {}
+		self.old_grades = None
+		self.librus = None
 
 	def add(self, grade):
 		"""add(grade) - Add a grade into the GradeBook.
@@ -53,7 +66,38 @@ class GradeBook:
 			if "śródroczna" in grade[7]:  # If śródroczna is in description
 				self.midterm_grades[grade[3]].append(grade)
 
+		if grade[0] not in self.grades_id:  # grade[0] is the id in librus
+			self.grades_id.append(grade[0])
+
+		if grade[5] not in self.dates:  # grade[5] is the date
+			self.dates.append(grade[5])
+
 		self.subject_grades[grade[3]].append(grade)
+
+	def update_old_grades(self):
+		"""update_old_grades() - Updates old_grades with grades
+		from last launch. Filename used: grades_old.pickle 
+		"""
+		filename = 'grades_old.pickle'
+		temp_old_grades = self.librus.file_handler.file_to_class(filename)
+		self.old_grades = GradeBook()
+		for grade in temp_old_grades.grades:
+			self.old_grades.add(grade)
+
+		self.old_grades.sort_by_date()
+
+	def compare_old_grades(self):
+		"""compare_old_grades() - Compares old_grades with grades,
+		returns new ones. Returns a GradeBook object.
+		"""
+		temp_gradebook = GradeBook()
+		for grade in self.grades:
+			if str(grade.grade_id) not in self.old_grades.grades_id:
+				temp_gradebook.add(grade)
+			elif str(grade.date) not in self.old_grades.dates:
+				temp_grade_book.add(grade)
+
+		return temp_gradebook
 
 	def display(self):
 		"""display() - Return the grades from the GradeBook,
@@ -62,6 +106,10 @@ class GradeBook:
 		display_text = ""
 		for grade in self.grades:
 			display_text += grade.display()
+
+		if not self.grades:
+			display_text = "No grades found."
+
 		return display_text
 
 	def sort_by_weight(self, reverse=False):
@@ -120,15 +168,29 @@ class EventCalendar:
 
 	Variables:
 	events (list) - The list of events.
+	events_id (list) - The list of events' IDs.
+	events_day (list) - The list of events' days.
+	old_events (EventCalendar) - The EventCalendar used on last launch.
+	librus (Librus) - Reference to the parent Librus object.
+		Set in Librus object during init.
 
 	Functions:
 	add(event) - Add an event into the EventCalendar.
 	display() - Return the events from the EventCalendar,
 		allowing to display them.
+	update_old_events(month, year) - Update the old_events with ones
+		stored in events<month>_<year>_old.pickle.
+	compare_old_events() - Compare the old_events with events and
+		returns the new added ones. Returns an EventCalendar.
+	sort_by_day(reverse) - Sort the events by their day.
 	"""
 	def __init__(self):
 		"""Initializes the EventCalendar by initializing variables."""
 		self.events = []
+		self.events_id = []
+		self.events_day = []
+		self.old_events = None
+		self.librus = None
 
 	def add(self, event):
 		"""add(event) - Add an event into the EventCalendar.
@@ -137,6 +199,37 @@ class EventCalendar:
 		event - a Event() object.
 		"""
 		self.events.append(event)
+		if event[10] not in self.events_id:  # id
+			self.events_id.append(event[10])
+		if event[4] not in self.events_day:  # day
+			self.events_day.append(event[4])
+
+	def update_old_events(self, month, year):
+		"""update_old_events(month, year) - Update the old_events with ones
+		stored in events<month>_<year>_old.pickle.
+
+		Parameters:
+		month (string) - The desired month.
+		year (string) - The desired year.
+		"""
+		filename = 'events'+str(month)+'_'+str(year)+'_old.pickle'
+		temp_old_events = self.librus.file_handler.file_to_class(filename)
+		self.old_events = EventCalendar()
+		for event in temp_old_events.events:
+			self.old_events.add(event)
+
+	def compare_old_events(self):
+		"""compare_old_events() - Compare the old_events with events and
+		returns the new added ones. Returns an EventCalendar.
+		"""
+		temp_event_calendar = EventCalendar()
+		for event in self.events:
+			if str(event.event_id) not in self.old_events.events_id:
+				temp_event_calendar.add(event)
+			# elif str(event.day) not in self.old_events.events_day:
+			# temp_event_calendar.add(event)
+
+		return temp_event_calendar
 
 	def display(self):
 		"""display() - Return the events from the EventCalendar,
@@ -146,6 +239,20 @@ class EventCalendar:
 		for event in self.events:
 			display_text += event.display()
 		return display_text
+
+	def sort_by_day(self, reverse=False):
+		"""sort_by_day(reverse=False) - Sort the events by their day.
+
+		Keyword parameters:
+		reverse (bool) - whether to reverse the list or not. (default False)
+		"""
+		temp_events = []
+		for event in self.events:
+			if not (len(event.values[4]) - 1):
+				event.values[4] = str('0'+str(event.values[4]))
+			temp_events.append(event)
+		self.events = temp_events
+		self.events.sort(key=lambda x: str(x[4]), reverse=reverse)
 
 
 class Grade:
@@ -454,6 +561,10 @@ class Event:
 class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
 
+	Variables:
+	librus (Librus) - Reference to the parent Librus object.
+		Set in Librus object during init.
+
 	Functions:
 	parse_grade(grade) - Parses BeautifulSoup grades provided by
 	Parser.parse_html_grade. Returns a list of values.
@@ -463,7 +574,7 @@ class Parser:
 	parse_html_table(html) - Parses HTML into BeautifulSoup events.
 	"""
 	def __init__(self):
-		pass
+		self.librus = None
 
 	def parse_grade(self, grade):
 		"""parse_grade(grade) - Parses a grade object provided by BeautifulSoup
@@ -651,7 +762,7 @@ class Parser:
 						)
 
 		return events_list
-	
+
 	def parse_html_grade(self, html):
 		"""parse_html_grade(html) - parses html and returns a list of soup grades
 		(used in Parser.parse_grade)
@@ -678,6 +789,10 @@ class Parser:
 class FileHandler:
 	"""FileHandler - a file handler. Handles all of file related stuff.
 
+	Variables:
+	librus (Librus) - Reference to the parent Librus object.
+		Set in Librus object during init.
+
 	Functions:
 	read_file(name, mode="r") - opens a file and returns its content.
 	save_file(name, content, mode="w") - opens a file and writes into it.
@@ -685,7 +800,7 @@ class FileHandler:
 	file_to_class(self, specified_class, name) - reads a class from a file.
 	"""
 	def __init__(self):
-		pass
+		self.librus = None
 
 	def read_file(self, name, mode="r"):
 		"""read_file(name) - opens a file and returns its content.
@@ -753,6 +868,8 @@ class LibrusFetcher:
 	headers (dictionary) - headers used in page request.
 	payload (dictionary) - POST data used in initial login.
 	cookies (dictionary) - cookies used in initial login.
+	librus (Librus) - Reference to the parent Librus object.
+		Set in Librus object during init.
 
 	Functions:
 	fetch_grades(login, password) - fetches the grades and returns the HTML.
@@ -760,7 +877,8 @@ class LibrusFetcher:
 		and returns the HTML.
 	"""
 	def __init__(self):
-		"""__init__() - initializes the class by declaring variables."""
+		"""__init__() - Initialize the class by declaring variables."""
+		self.librus = None
 		self.url_grades = 'https://synergia.librus.pl/przegladaj_oceny/uczen'
 		self.url_events = 'https://synergia.librus.pl/terminarz'
 		self.url_login = 'https://synergia.librus.pl/loguj'
@@ -870,6 +988,12 @@ class Librus:
 		self.login = ""
 		self.password = ""
 
+		self.file_handler.librus = self
+		self.parser.librus = self
+		self.grade_book.librus = self
+		self.event_calendar.librus = self
+		self.librus_fetcher.librus = self
+
 	def update_event_calendar(self):
 		"""update_event_calendar() - Updates the internal event_calendar.
 		Requires user input.
@@ -890,7 +1014,12 @@ class Librus:
 			month = input("Input desired month (1-12, without the prequeling zero):")
 			year = input("Input desired year (YYYY):")
 			filename = "events"+month+"_"+year+".pickle"
-			self.event_calendar = self.file_handler.file_to_class(filename)
+			temp_event_calendar = self.file_handler.file_to_class(filename)
+			self.event_calendar = EventCalendar()
+			for event in temp_event_calendar.events:
+				self.event_calendar.add(event)  # future proof my code
+			self.event_calendar.librus = self
+			self.event_calendar.update_old_events(month, year)
 			print("Done.")
 
 		elif choice == 'b':
@@ -911,6 +1040,8 @@ class Librus:
 			for ev in temp_parse:
 				self.event_calendar.add(Event(ev))
 			filename = "events"+month+"_"+year+".pickle"
+			self.event_calendar.librus = self
+			self.event_calendar.update_old_events(month, year)
 			self.file_handler.class_to_file(self.event_calendar, filename)
 			print("Done.")
 
@@ -927,11 +1058,16 @@ class Librus:
 				break
 			else:
 				print("Invalid answer - "+choice)
-	
+
 		print("---")
 		if choice == 'a':
 			print("Picked reading from cached data.")
-			self.grade_book = self.file_handler.file_to_class("oceny.pickle")
+			temp_grade_book = self.file_handler.file_to_class("grades.pickle")
+			self.grade_book = GradeBook()
+			for grade in temp_grade_book.grades:
+				self.grade_book.add(grade)  # future proof my code
+			self.grade_book.librus = self
+			self.grade_book.update_old_grades()
 			print("Done.")
 
 		elif choice == 'b':
@@ -944,10 +1080,21 @@ class Librus:
 			for i in range(len(oceny)):
 				if i - 1:   # first grade is a test grade that doesnt parse, so -1
 					self.grade_book.add(Grade(self.parser.parse_grade(oceny[i-1])))
-			self.grade_book.class_to_file(self.event_calendar, "grades.pickle")
+			self.file_handler.class_to_file(self.grade_book, "grades.pickle")
+			self.grade_book.librus = self
+			self.grade_book.update_old_grades()
 			print("Done.")
 
 
 objLibrus = Librus()
 objLibrus.update_event_calendar()
-print(objLibrus.event_calendar.display())
+objLibrus.update_grade_book()
+
+old_events = objLibrus.event_calendar.compare_old_events()
+old_grades = objLibrus.grade_book.compare_old_grades()
+
+old_events.sort_by_day()
+old_grades.sort_by_date()
+
+print(old_grades.display())
+print(old_events.display())
