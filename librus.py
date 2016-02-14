@@ -78,7 +78,7 @@ class GradeBook:
 		"""update_old_grades() - Updates old_grades with grades
 		from last launch. Filename used: grades_old.pickle 
 		"""
-		filename = 'grades_old.pickle'
+		filename = 'grades.pickle'
 		temp_old_grades = self.librus.file_handler.file_to_class(filename)
 		self.old_grades = GradeBook()
 		for grade in temp_old_grades.grades:
@@ -212,7 +212,7 @@ class EventCalendar:
 		month (string) - The desired month.
 		year (string) - The desired year.
 		"""
-		filename = 'events'+str(month)+'_'+str(year)+'_old.pickle'
+		filename = 'events'+str(month)+'_'+str(year)+'.pickle'
 		temp_old_events = self.librus.file_handler.file_to_class(filename)
 		self.old_events = EventCalendar()
 		for event in temp_old_events.events:
@@ -225,6 +225,8 @@ class EventCalendar:
 		temp_event_calendar = EventCalendar()
 		for event in self.events:
 			if str(event.event_id) not in self.old_events.events_id:
+				print(event.event_id)
+				print(event.values)
 				temp_event_calendar.add(event)
 			# elif str(event.day) not in self.old_events.events_day:
 			# temp_event_calendar.add(event)
@@ -1008,6 +1010,7 @@ class Librus:
 			else:
 				print("Invalid answer - "+choice)
 		print("---")
+		current_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
 
 		if choice == 'a':
 			print("Picked reading from cached data.")
@@ -1043,6 +1046,10 @@ class Librus:
 			self.event_calendar.librus = self
 			self.event_calendar.update_old_events(month, year)
 			self.file_handler.class_to_file(self.event_calendar, filename)
+
+			storage_filename = "storage\events_"+month+"_"+year
+			storage_filename += "_"+current_time+".pickle"
+			self.file_handler.class_to_file(self.event_calendar, storage_filename)
 			print("Done.")
 
 	def update_grade_book(self):
@@ -1058,8 +1065,9 @@ class Librus:
 				break
 			else:
 				print("Invalid answer - "+choice)
-
 		print("---")
+		current_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
+
 		if choice == 'a':
 			print("Picked reading from cached data.")
 			temp_grade_book = self.file_handler.file_to_class("grades.pickle")
@@ -1072,17 +1080,24 @@ class Librus:
 
 		elif choice == 'b':
 			print("Picked getting data straight from Librus. Updating...")
-			self.login = input("Input your username:")
-			self.password = input("Input your password:")
+			if self.login and self.password:
+				pass
+			else:
+				self.login = input("Input your username:")
+				self.password = input("Input your password:")
 			html = self.librus_fetcher.fetch_grades(self.login, self.password)
 			oceny = self.parser.parse_html_grade(html)
 
 			for i in range(len(oceny)):
 				if i - 1:   # first grade is a test grade that doesnt parse, so -1
 					self.grade_book.add(Grade(self.parser.parse_grade(oceny[i-1])))
-			self.file_handler.class_to_file(self.grade_book, "grades.pickle")
 			self.grade_book.librus = self
 			self.grade_book.update_old_grades()
+			self.file_handler.class_to_file(self.grade_book, "grades.pickle")
+
+			storage_filename = "storage\grades"
+			storage_filename += "_"+current_time+".pickle"
+			self.file_handler.class_to_file(self.grade_book, storage_filename)
 			print("Done.")
 
 
