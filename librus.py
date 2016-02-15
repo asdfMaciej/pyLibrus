@@ -76,7 +76,7 @@ class GradeBook:
 
 	def update_old_grades(self):
 		"""update_old_grades() - Updates old_grades with grades
-		from last launch. Filename used: grades_old.pickle 
+		from last launch. Filename used: grades_old.pickle
 		"""
 		filename = 'grades.pickle'
 		temp_old_grades = self.librus.file_handler.file_to_class(filename)
@@ -170,6 +170,8 @@ class EventCalendar:
 	events (list) - The list of events.
 	events_id (list) - The list of events' IDs.
 	events_date (list) - The list of events' dates.
+	events_day_date (list) - The list of events' day_dates, which are
+		in a <lesson>_<day> format. Spaghetti.
 	old_events (EventCalendar) - The EventCalendar used on last launch.
 	librus (Librus) - Reference to the parent Librus object.
 		Set in Librus object during init.
@@ -270,6 +272,49 @@ class EventCalendar:
 			temp_events.append(event)
 		self.events = temp_events
 		self.events.sort(key=lambda x: str(x[4]), reverse=reverse)
+
+
+class AnnouncementBoard:
+	"""AnnouncementBoard - Stores announcements.
+		Allows displaying all of them at once.
+
+	Variables:
+	announcements (list) - A list of stored announcements.
+	librus (Librus) - Reference to parent Librus object.
+		Set by Librus on its init.
+
+	Functions:
+	add(announcement) - Add an announcement.
+	display() - Return the announcements' display values packed
+		together, allowing to display them in a nice way.
+	sort_by_date(reverse) - Sort the events by their date.
+	"""
+	def __init__(self):
+		self.announcements = []
+		self.librus = None
+
+	def add(self, announcement):
+		"""add(announcement) - Add an announcement."""
+		self.announcements.append(announcement)
+
+	def display(self):
+		"""display() - Return the announcements' display values packed
+		together, allowing to display them in a nice way.
+		"""
+		display_text = ""
+		for announcement in self.announcements:
+			display_text += announcement.display()
+			display_text += "\n"
+
+		return display_text
+
+	def sort_by_date(self, reverse=False):
+		"""sort_by_date(reverse=False) - Sort the events by their date.
+
+		Keyword parameters:
+		reverse (bool) - whether to reverse the list or not. (default False)
+		"""
+		self.announcements.sort(key=lambda x: str(x[7]), reverse=reverse)
 
 
 class Grade:
@@ -577,6 +622,89 @@ class Event:
 		return display_string
 
 
+class Announcement:
+	"""Announcement - An announcement object. Stores all of its data.
+		Allows displaying it with a function call.
+
+	Variables:
+	values (list) - provided by Parser class, a list of values:
+		[0] - teacher
+		[1] - date
+		[2] - title
+		[3] - content
+		[4] - year
+		[5] - month
+		[6] - day
+		[7] - pseudo_time
+	teacher (str) - name of teacher who announced the announcement.
+	date (str) - date in which the announcement was announced.
+	title (str) - title of the announcement.
+	content (str) - content of the announcement.
+	year (str) - year in which the announcement was announced.
+	month (str) - month in which the announcement was announced.
+	day (str) - day in which the announcement was announced.
+	pseudo_time (str) - days since year 0 until the date of announcement.
+		Don't ask, it's used for sorting.
+
+	Functions:
+	__init__(values) - Accepts the values from Parser.parse_announcements and
+		puts them into variables. Initializing method.
+	update(values) - Updates the values with new ones. Done on initialization.
+	display() - Returns a text representation of the announcement,
+		which can be used for display.
+	"""
+	def __init__(self, values):
+		"""__init__(values) - Accepts the values from Parser.parse_announcements
+		and puts them into variables. Initializing method.
+
+		Parameters:
+		values (list) - List of values provided by Parser class.
+		"""
+		self.values = values
+		self.teacher = ""
+		self.date = ""
+		self.title = ""
+		self.content = ""
+		self.year = ""
+		self.month = ""
+		self.day = ""
+		self.pseudo_time = ""
+
+		self.update(self.values)
+
+	def __str__(self):
+		return self.display()
+
+	def __getitem__(self, index):
+		return self.values[index]
+
+	def update(self, values):
+		"""update(values) - Updates the values with new ones.
+			Done on initialization.
+
+		Parameters:
+		values (list) - List of values provided by Parser class.
+		"""
+		self.teacher = values[0]
+		self.date = values[1]
+		self.title = values[2]
+		self.content = values[3]
+		self.year = values[4]
+		self.month = values[5]
+		self.day = values[6]
+		self.pseudo_time = values[7]
+
+	def display(self):
+		"""display() - Returns a text representation of the
+		announcement, which can be used for display.
+		"""
+		display_string = "["+self.date+"] - "
+		display_string += self.title+" - "+self.teacher
+		display_string += ": "+self.content
+
+		return display_string
+
+
 class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
 	Unless completely necessary, don't touch this class.
@@ -596,8 +724,11 @@ class Parser:
 	Parser.parse_html_grade. Returns a list of values.
 	parse_events(events, html) - Parses HTML and BeautifulSoup events provided by
 	Parser.parse_html_table, returns a list of values.
+	parse_announcements(announcements) - Parses BeautifulSoup announcements
+	provided by Parser.parse_html_announcements. Returns a list of values.
 	parse_html_grade(html) - Parses HTML into BeautifulSoup grades.
 	parse_html_table(html) - Parses HTML into BeautifulSoup events.
+	parse_html_announcements(html) - Parses HTML into BeautifulSoup announcements.
 	"""
 	def __init__(self):
 		self.librus = None
@@ -797,6 +928,30 @@ class Parser:
 
 		return events_list
 
+	def parse_announcements(self, html):
+		"""parse_announcements(announcements) - Parses BeautifulSoup announcements
+			provided by Parser.parse_html_announcements. Returns a list of values.
+
+		Parameters:
+		html (string) - provided by Parser.parse_html_announcements.
+		"""
+		title = html.split('colspan="2">')[1].split('</td>')[0]
+		teacher = html.split('Dodał</th><td> ')[1].split('</td>')[0]
+		date = html.split('publikacji</th>')[1].split('<td> ')[1].split('</td>')[0]
+		year, month, day = date.split('-')
+
+		content = html.split('Treść</th>')[1].split('<td>')[1].split('</td>')[0]
+		content = content.replace('/n', '')
+		content = content.replace('<br/>', '')
+
+		pseudo_time = str(int(year)*365 + int(month)*30 + int(day))
+		announcements_list = [
+			teacher, date, title,
+			content, year, month,
+			day, pseudo_time
+		]
+		return announcements_list
+
 	def parse_html_grade(self, html):
 		"""parse_html_grade(html) - parses html and returns a list of soup grades
 		(used in Parser.parse_grade)
@@ -817,6 +972,19 @@ class Parser:
 		"""
 		soup = BeautifulSoup(html, "html.parser")
 		soupGrades = soup.findAll("div", {"class": "kalendarz-dzien"})
+		return soupGrades
+
+	def parse_html_announcements(self, html):
+		"""parse_announcements(announcements) - Parses BeautifulSoup announcements
+			provided by Parser.parse_html_announcements. Returns a list of values.
+
+		Parameters:
+		html (string) - the HTML of announcements website.
+		"""
+		soup = BeautifulSoup(html, "html.parser")
+		soupGrades = soup.findAll(
+			"table", {'class': 'decorated form big center printable'}
+		)
 		return soupGrades
 
 
@@ -899,6 +1067,7 @@ class LibrusFetcher:
 	url_grades (string) - the URL to grades page on Librus.
 	url_events (string) - the URL to events page on Librus.
 	url_login (string) - the URL to login page on Librus.
+	url_announcements (string) - the URL to announcements page on Librus.
 	headers (dictionary) - headers used in page request.
 	payload (dictionary) - POST data used in initial login.
 	cookies (dictionary) - cookies used in initial login.
@@ -907,6 +1076,8 @@ class LibrusFetcher:
 
 	Functions:
 	fetch_grades(login, password) - fetches the grades and returns the HTML.
+	fetch_announcements(login, password) - fetches announcements
+		and returns the HTML.
 	fetch_events(login, password, month, year) - fetches events
 		and returns the HTML.
 	"""
@@ -916,6 +1087,7 @@ class LibrusFetcher:
 		self.url_grades = 'https://synergia.librus.pl/przegladaj_oceny/uczen'
 		self.url_events = 'https://synergia.librus.pl/terminarz'
 		self.url_login = 'https://synergia.librus.pl/loguj'
+		self.url_announcements = 'https://synergia.librus.pl/ogloszenia'
 
 		useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36'
 		useragent += '(KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'
@@ -940,6 +1112,29 @@ class LibrusFetcher:
 			'_ga': 'GA1.2.2085668300.1439744410',
 			'TestCookie': '1'
 		}
+
+	def fetch_announcements(self, login, password):
+		"""fetch_announcements(login, password) - fetches announcements and
+			returns the HTML.
+
+		I know copy-pasting code is bad, unelegant etc. I'll fix that
+			in future.
+
+		Parameters:
+		login (string) - login for librus
+		password (string) - password for librus
+		"""
+		self.payload['login'] = login
+		self.payload['passwd'] = password
+		with requests.Session() as session:
+			response = session.post(
+				self.url_login,
+				data=self.payload, headers=self.headers,
+				cookies=self.cookies
+			)
+			time.sleep(2)
+			response = session.get(self.url_announcements, headers=self.headers)
+		return response.text
 
 	def fetch_grades(self, login, password):
 		"""fetch_grades(login, password) - fetches grades and returns the HTML.
@@ -1006,12 +1201,14 @@ class Librus:
 	grade_book (GradeBook) - the internal GradeBook
 	event_calendar (EventCalendar) - the internal EventCalendar
 	librus_fetcher (LibrusFetcher) - the internal LibrusFetcher
+	announcement_board (AnnouncementBoard) - the internal AnnouncementBoard
 	login (string) - login to Librus
 	password (string) - password to Librus
 
 	Functions:
 	update_event_calendar() - Updates the internal event_calendar
 	update_grade_book() - Updates the internal grade_book
+	update_announcements_board() - Updates the internal announcement_board
 	"""
 	def __init__(self):
 		self.file_handler = FileHandler()
@@ -1019,6 +1216,7 @@ class Librus:
 		self.grade_book = GradeBook()
 		self.event_calendar = EventCalendar()
 		self.librus_fetcher = LibrusFetcher()
+		self.announcement_board = AnnouncementBoard()
 		self.login = ""
 		self.password = ""
 
@@ -1027,6 +1225,7 @@ class Librus:
 		self.grade_book.librus = self
 		self.event_calendar.librus = self
 		self.librus_fetcher.librus = self
+		self.announcement_board.librus = self
 
 	def update_event_calendar(self):
 		"""update_event_calendar() - Updates the internal event_calendar.
@@ -1083,7 +1282,6 @@ class Librus:
 				self.event_calendar.update_old_events(month, year)
 			except FileNotFoundError:
 				self.old_events = self.event_calendar
-				print("Done!")
 			self.file_handler.class_to_file(self.event_calendar, filename)
 
 			storage_filename = "storage\events_"+month+"_"+year
@@ -1139,20 +1337,62 @@ class Librus:
 			self.file_handler.class_to_file(self.grade_book, storage_filename)
 			print("Done.")
 
+	def update_announcements_board(self):
+		"""update_announcements_board() - Updates the internal announcement_board.
+		Requires user input.
+		"""
+		print("Choose the method that will be used for getting announcements data:")
+		print("a - Reading from cached data")
+		print("b - Getting data straight from Librus")
+		while True:
+			choice = input("Pick: ").lower()
+			if choice in ('a', 'b'):
+				break
+			else:
+				print("Invalid answer - "+choice)
+		print("---")
+		current_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
+
+		if choice == 'a':
+			print("Picked reading from cached data.")
+			temp_announcement_board = self.file_handler.file_to_class(
+				"announcements.pickle"
+			)
+			self.announcement_board = AnnouncementBoard()
+			for announcement in temp_announcement_board.announcements:
+				self.announcement_board.add(announcement)  # future proof my code
+			self.announcement_board.librus = self
+			# TO-DO: self..update_old_grades()
+			print("Done.")
+
+		elif choice == 'b':
+			print("Picked getting data straight from Librus. Updating...")
+			if self.login and self.password:
+				pass
+			else:
+				self.login = input("Input your username:")
+				self.password = input("Input your password:")
+			html = self.librus_fetcher.fetch_announcements(self.login, self.password)
+			ogloszenia = self.parser.parse_html_announcements(html)
+
+			for i in range(len(ogloszenia)):
+				self.announcement_board.add(
+					Announcement(
+						self.parser.parse_announcements(str(ogloszenia[i-1]))
+					)
+				)
+			self.announcement_board.librus = self
+			# TO-DO: self.announcement_board.update_old_grades()
+			self.file_handler.class_to_file(
+				self.announcement_board, "announcements.pickle"
+			)
+
+			storage_filename = "storage\\announcements"
+			storage_filename += "_"+current_time+".pickle"
+			self.file_handler.class_to_file(self.announcement_board, storage_filename)
+			print("Done.")
+
 
 objLibrus = Librus()
-objLibrus.update_event_calendar()
-objLibrus.update_grade_book()
-
-old_events = objLibrus.event_calendar.compare_old_events()
-old_grades = objLibrus.grade_book.compare_old_grades()
-
-old_events.sort_by_day()
-old_grades.sort_by_date()
-objLibrus.grade_book.sort_by_date()
-objLibrus.event_calendar.sort_by_day()
-
-print(old_grades.display())
-print(old_events.display())
-print(objLibrus.grade_book.display())
-print(objLibrus.event_calendar.display())
+objLibrus.update_announcements_board()
+print(objLibrus.announcement_board.display())
