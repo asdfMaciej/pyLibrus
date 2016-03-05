@@ -317,6 +317,49 @@ class AnnouncementBoard:
 		self.announcements.sort(key=lambda x: str(x[7]), reverse=reverse)
 
 
+class AttendanceTable:
+	"""AttendanceTable - Stores attendance.
+		Allows displaying all of them at once.
+
+	Variables:
+	attendances (list) - A list of stored attendance.
+	librus (Librus) - Reference to parent Librus object.
+		Set by Librus on its init.
+
+	Functions:
+	add(attendance) - Add attendance.
+	display() - Return the attendance' display values packed
+		together, allowing to display them in a nice way.
+	sort_by_date(reverse) - Sort the attendance by its date.
+	"""
+	def __init__(self):
+		self.attendances = []
+		self.librus = None
+
+	def add(self, attendance):
+		"""add(attendance) - Add attendance."""
+		self.attendances.append(attendance)
+
+	def display(self):
+		"""display() - Return the attendances' display values packed
+		together, allowing to display them in a nice way.
+		"""
+		display_text = ""
+		for attendance in self.attendances:
+			display_text += attendance.display()
+			display_text += "\n"
+
+		return display_text
+
+	def sort_by_date(self, reverse=False):
+		"""sort_by_date(reverse=False) - Sort attendances by their date.
+
+		Keyword parameters:
+		reverse (bool) - whether to reverse the list or not. (default False)
+		"""
+		self.attendances.sort(key=lambda x: str(x[2]), reverse=reverse)
+
+
 class Grade:
 	"""Grade - A grade object. Stores all of values,
 	allows displaying it on a function call.
@@ -705,6 +748,104 @@ class Announcement:
 		return display_string
 
 
+class Attendance:
+	"""Attendance - An attendance object. Stores all of its data.
+		Allows displaying it with a function call.
+
+	Variables:
+	values (list) - provided by Parser class, a list of values:
+		[0] - attendance_type
+		[1] - attendance_numtype
+		[2] - date
+		[3] - lesson
+		[4] - teacher
+		[5] - lesson_number
+		[6] - school_trip
+		[7] - teacher_added
+		[8] - attendance_short_type
+		[9] - librus_id
+	attendance_type (str) - type of the attendance.
+	attendance_numtype (int) - numtype of the attendance.
+		0 - Usprawiedliwienie
+		1 - Nieobecność
+		2 - Spóźnienie
+		3 - Zwolnienie
+	date (str) - date of the attendance.
+	lesson (str) - lesson of the attendance.
+	teacher (str) - teacher of that lesson.
+	lesson_number (int) - number of that lesson.
+	school_trip (bool) - if it was a school trip or not.
+	teacher_added (str) - teacher who added the attendance.
+	attendance_short_type (str) - short type of the attendance.
+		u - Usprawiedliwienie
+		nb - Nieobecność
+		sp - Spóźnienie
+		zw - Zwolnienie
+	librus_id (int) - ID in librus of the attendance.
+
+	Functions:
+	__init__(values) - Accepts the values from Parser.parse_attendance and
+		puts them into variables. Initializing method.
+	update(values) - Updates the values with new ones. Done on initialization.
+	display() - Returns a text representation of the attendance,
+		which can be used for display.
+	"""
+	def __init__(self, values):
+		"""__init__(values) - Accepts the values from Parser.parse_attendance
+		and puts them into variables. Initializing method.
+
+		Parameters:
+		values (list) - List of values provided by Parser class.
+		"""
+		self.values = values
+		self.attendance_type = ""
+		self.attendance_numtype = 0
+		self.date = ""
+		self.lesson = ""
+		self.teacher = ""
+		self.lesson_number = 0
+		self.school_trip = False
+		self.teacher_added = ""
+		self.attendance_short_type = ""
+		self.librus_id = 0
+
+		self.update(self.values)
+
+	def __str__(self):
+		return self.display()
+
+	def __getitem__(self, index):
+		return self.values[index]
+
+	def update(self, values):
+		"""update(values) - Updates the values with new ones.
+			Done on initialization.
+
+		Parameters:
+		values (list) - List of values provided by Parser class.
+		"""
+		self.attendance_type = values[0]
+		self.attendance_numtype = values[1]
+		self.date = values[2]
+		self.lesson = values[3]
+		self.teacher = values[4]
+		self.lesson_number = int(values[5])
+		self.school_trip = {'Tak': True, 'Nie': False}[values[6]]
+		self.teacher_added = values[7]
+		self.attendance_short_type = values[8]
+		self.librus_id = int(values[9])
+
+	def display(self):
+		"""display() - Returns a text representation of the
+		announcement, which can be used for display.
+		"""
+		display_string = self.date+" - "+self.attendance_type
+		display_string += " - "+self.lesson+" ("+self.teacher+")"
+		display_string += ", lekcja nr. "+str(self.lesson_number)
+
+		return display_string
+
+
 class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
 	Unless completely necessary, don't touch this class.
@@ -726,6 +867,8 @@ class Parser:
 	Parser.parse_html_table, returns a list of values.
 	parse_announcements(announcements) - Parses BeautifulSoup announcements
 	provided by Parser.parse_html_announcements. Returns a list of values.
+	parse_attendance(html) - Parses html of the attendance page.
+	Returns a list of values.
 	parse_html_grade(html) - Parses HTML into BeautifulSoup grades.
 	parse_html_table(html) - Parses HTML into BeautifulSoup events.
 	parse_html_announcements(html) - Parses HTML into BeautifulSoup announcements.
@@ -952,6 +1095,50 @@ class Parser:
 		]
 		return announcements_list
 
+	def parse_attendance(self, html):
+		"""parse_attendance(html) - Parses html of the attendance page.
+			Returns a list of values.
+
+		Parameters:
+		html (string) - HTML of attendance page on Librus.
+		"""
+		short_to_numtype = {
+			'u': 0,  # Usprawiedliwienie
+			'nb': 1,  # Nieobecnosc
+			'sp': 2,  # Spoznienie
+			'zw': 3  # Zwolnienie
+		}
+		attendance_temp = html.split(
+			'<a href="javascript:void(0);" title="Rodzaj: '
+		)[1:]
+		attendance = []
+		for i in attendance_temp:
+			attendance.append(i.split('</a>')[0])
+		attendance_list = []
+
+		for x in attendance:
+			attendance_type = x.split('<br>')[0].capitalize()
+			attendance_short_type = x.split('"  >')[1]
+			attendance_numtype = short_to_numtype[
+				attendance_short_type.lower()
+			]
+			date = x.split('Data: ')[1].split(' <br>')[0]
+			lesson = x.split('Lekcja: ')[1].split('<br>')[0]
+			lesson_number = x.split('Godzina lekcyjna: ')[1].split('</b>')[0]
+			teacher = x.split('Nauczyciel: ')[1].split('<br>')[0]
+			teacher_added = x.split('Dodał: ')[1].split('"')[0]
+			school_trip = x.split('Czy wycieczka: ')[1].split('<br>')[0]
+			librus_id = x.split('/szczegoly/')[1].split("'")[0]
+			attendance_list.append(
+				[
+					attendance_type, attendance_numtype,
+					date, lesson, teacher,
+					lesson_number, school_trip, teacher_added,
+					attendance_short_type, librus_id
+				]
+			)
+		return attendance_list
+
 	def parse_html_grade(self, html):
 		"""parse_html_grade(html) - parses html and returns a list of soup grades
 		(used in Parser.parse_grade)
@@ -1068,6 +1255,7 @@ class LibrusFetcher:
 	url_events (string) - the URL to events page on Librus.
 	url_login (string) - the URL to login page on Librus.
 	url_announcements (string) - the URL to announcements page on Librus.
+	url_attendance (string) - the URL to attendance page on Librus.
 	headers (dictionary) - headers used in page request.
 	payload (dictionary) - POST data used in initial login.
 	cookies (dictionary) - cookies used in initial login.
@@ -1080,6 +1268,8 @@ class LibrusFetcher:
 		and returns the HTML.
 	fetch_events(login, password, month, year) - fetches events
 		and returns the HTML.
+	fetch_attendance(login, password) - fetches attendance
+		and returns the HTML.
 	"""
 	def __init__(self):
 		"""__init__() - Initialize the class by declaring variables."""
@@ -1088,6 +1278,7 @@ class LibrusFetcher:
 		self.url_events = 'https://synergia.librus.pl/terminarz'
 		self.url_login = 'https://synergia.librus.pl/loguj'
 		self.url_announcements = 'https://synergia.librus.pl/ogloszenia'
+		self.url_attendance = 'https://synergia.librus.pl/przegladaj_nb/uczen'
 
 		useragent = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36'
 		useragent += '(KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36'
@@ -1117,8 +1308,7 @@ class LibrusFetcher:
 		"""fetch_announcements(login, password) - fetches announcements and
 			returns the HTML.
 
-		I know copy-pasting code is bad, unelegant etc. I'll fix that
-			in future.
+		TO-DO: Functions below are copy pasted, refactor it.
 
 		Parameters:
 		login (string) - login for librus
@@ -1191,6 +1381,26 @@ class LibrusFetcher:
 			)
 			return(response.text)
 
+	def fetch_attendance(self, login, password):
+		"""fetch_attendance(login, password) - fetches grades and
+			returns the HTML.
+
+		Parameters:
+		login (string) - login for librus
+		password (string) - password for librus
+		"""
+		self.payload['login'] = login
+		self.payload['passwd'] = password
+		with requests.Session() as session:
+			response = session.post(
+				self.url_login,
+				data=self.payload, headers=self.headers,
+				cookies=self.cookies
+			)
+			time.sleep(2)
+			response = session.get(self.url_attendance, headers=self.headers)
+		return response.text
+
 
 class Librus:
 	"""Librus - allows for control of everything.
@@ -1202,6 +1412,7 @@ class Librus:
 	event_calendar (EventCalendar) - the internal EventCalendar
 	librus_fetcher (LibrusFetcher) - the internal LibrusFetcher
 	announcement_board (AnnouncementBoard) - the internal AnnouncementBoard
+	attendance_table (AttendanceTable) - the internal AttendanceTable
 	login (string) - login to Librus
 	password (string) - password to Librus
 
@@ -1209,6 +1420,7 @@ class Librus:
 	update_event_calendar() - Updates the internal event_calendar
 	update_grade_book() - Updates the internal grade_book
 	update_announcements_board() - Updates the internal announcement_board
+	update_attendance_table() - Updates the internal attendance_table
 	"""
 	def __init__(self):
 		self.file_handler = FileHandler()
@@ -1217,6 +1429,7 @@ class Librus:
 		self.event_calendar = EventCalendar()
 		self.librus_fetcher = LibrusFetcher()
 		self.announcement_board = AnnouncementBoard()
+		self.attendance_table = AttendanceTable()
 		self.login = ""
 		self.password = ""
 
@@ -1226,6 +1439,7 @@ class Librus:
 		self.event_calendar.librus = self
 		self.librus_fetcher.librus = self
 		self.announcement_board.librus = self
+		self.attendance_table.librus = self
 
 	def update_event_calendar(self):
 		"""update_event_calendar() - Updates the internal event_calendar.
@@ -1392,7 +1606,58 @@ class Librus:
 			self.file_handler.class_to_file(self.announcement_board, storage_filename)
 			print("Done.")
 
+	def update_attendance_table(self):
+		"""update_attendance_table() - Updates the internal attendance_table.
+		Requires user input.
+		"""
+		print("Choose the method that will be used for getting attendance data:")
+		print("a - Reading from cached data")
+		print("b - Getting data straight from Librus")
+		while True:
+			choice = input("Pick: ").lower()
+			if choice in ('a', 'b'):
+				break
+			else:
+				print("Invalid answer - "+choice)
+		print("---")
+		current_time = time.strftime("%Y_%m_%d_%H_%M_%S", time.gmtime())
 
-objLibrus = Librus()
-objLibrus.update_announcements_board()
-print(objLibrus.announcement_board.display())
+		if choice == 'a':
+			print("Picked reading from cached data.")
+			temp_attendance_table = self.file_handler.file_to_class(
+				"attendance.pickle"
+			)
+			self.attendance_table = AttendanceTable()
+			for attendance in temp_attendance_table.attendances:
+				self.attendance_table.add(attendance)  # future proof my code
+			self.attendance_table.librus = self
+			# TO-DO: self.attendance_table.update_old_grades()
+			print("Done.")
+
+		elif choice == 'b':
+			print("Picked getting data straight from Librus. Updating...")
+			if self.login and self.password:
+				pass
+			else:
+				self.login = input("Input your username:")
+				self.password = input("Input your password:")
+			html = self.librus_fetcher.fetch_attendance(self.login, self.password)
+			attendance = self.parser.parse_attendance(html)
+
+			for i in attendance:
+				self.attendance_table.add(Attendance(i))
+			self.attendance_table.librus = self
+			# TO-DO: self.attendance_table.update_old_grades()
+			self.file_handler.class_to_file(
+				self.attendance_table, "attendance.pickle"
+			)
+
+			storage_filename = "storage\\attendance"
+			storage_filename += "_"+current_time+".pickle"
+			self.file_handler.class_to_file(self.attendance_table, storage_filename)
+			print("Done.")
+
+
+lib = Librus()
+lib.update_attendance_table()
+print(lib.attendance_table.display())
