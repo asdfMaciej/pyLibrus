@@ -76,7 +76,7 @@ class GradeBook:
 
 	def update_old_grades(self):
 		"""update_old_grades() - Updates old_grades with grades
-		from last launch. Filename used: grades_old.pickle
+		from last launch.
 		"""
 		filename = 'grades.pickle'
 		temp_old_grades = self.librus.file_handler.file_to_class(filename)
@@ -213,7 +213,7 @@ class EventCalendar:
 
 	def update_old_events(self, month, year):
 		"""update_old_events(month, year) - Update the old_events with ones
-		stored in events<month>_<year>_old.pickle.
+		stored in events<month>_<year>.pickle.
 
 		Parameters:
 		month (string) - The desired month.
@@ -291,11 +291,18 @@ class AnnouncementBoard:
 	"""
 	def __init__(self):
 		self.announcements = []
+		self.old_announcements = []
+		self.identificators = []
 		self.librus = None
 
 	def add(self, announcement):
 		"""add(announcement) - Add an announcement."""
 		self.announcements.append(announcement)
+		self.identificators.append(
+			str(announcement.date) +
+			str(announcement.title) +
+			str(announcement.content)
+		)
 
 	def display(self):
 		"""display() - Return the announcements' display values packed
@@ -316,6 +323,23 @@ class AnnouncementBoard:
 		"""
 		self.announcements.sort(key=lambda x: str(x[7]), reverse=reverse)
 
+	def update_old_announcements(self):
+		filename = 'announcements.pickle'
+		temp_old_announcements = self.librus.file_handler.file_to_class(filename)
+		self.old_announcements = AnnouncementBoard()
+		for announcement in temp_old_announcements.announcements:
+			self.old_announcements.add(announcement)
+		self.old_announcements.sort_by_date()
+
+	def compare_old_announcements(self):
+		temp_announcement_board = AnnouncementBoard()
+		for announcement in self.announcements:
+			cond = str(announcement.date)+str(announcement.title)
+			cond += str(announcement.content)
+			if cond not in self.old_announcements.identificators:
+				temp_announcement_board.add(announcement)
+		return temp_announcement_board
+
 
 class AttendanceTable:
 	"""AttendanceTable - Stores attendance.
@@ -334,11 +358,16 @@ class AttendanceTable:
 	"""
 	def __init__(self):
 		self.attendances = []
+		self.librus_id = []
+		self.attendance_id = []
+		self.old_attendance = None
 		self.librus = None
 
 	def add(self, attendance):
 		"""add(attendance) - Add attendance."""
 		self.attendances.append(attendance)
+		self.librus_id.append(attendance.librus_id)
+		self.attendance_id.append(attendance.attendance_numtype+attendance.librus_id)
 
 	def display(self):
 		"""display() - Return the attendances' display values packed
@@ -346,8 +375,9 @@ class AttendanceTable:
 		"""
 		display_text = ""
 		for attendance in self.attendances:
-			display_text += attendance.display()
-			display_text += "\n"
+			display_text += attendance.display() + "\n"
+		if not self.attendances:
+			display_text = "No attendance found."
 
 		return display_text
 
@@ -358,6 +388,32 @@ class AttendanceTable:
 		reverse (bool) - whether to reverse the list or not. (default False)
 		"""
 		self.attendances.sort(key=lambda x: str(x[2]), reverse=reverse)
+
+	def update_old_attendance(self):
+		"""update_old_attendance() - Updates old_attendance with attendance
+		from last launch.
+		"""
+		filename = 'attendance.pickle'
+		temp_old_announcements = self.librus.file_handler.file_to_class(filename)
+		self.old_attendance = AttendanceTable()
+		for attendance in temp_old_announcements.attendances:
+			self.old_attendance.add(attendance)
+
+		self.old_attendance.sort_by_date()
+
+	def compare_old_attendance(self):
+		"""compare_old_attendance() - Compares old_attendance with attendance,
+		returns new ones. Returns a AttendanceTable object.
+		"""
+		temp_attendance_table = AttendanceTable()
+		modified_attendance_table = AttendanceTable()
+		for attendance in self.attendances:
+			cond = attendance.attendance_numtype + attendance.librus_id
+			if attendance.librus_id not in self.old_attendance.librus_id:
+				temp_attendance_table.add(attendance)
+			elif cond not in self.old_attendance.attendance_id:
+				modified_attendance_table.add(attendance)
+		return temp_attendance_table, modified_attendance_table
 
 
 class Grade:
@@ -1576,7 +1632,7 @@ class Librus:
 			for announcement in temp_announcement_board.announcements:
 				self.announcement_board.add(announcement)  # future proof my code
 			self.announcement_board.librus = self
-			# TO-DO: self..update_old_grades()
+			self.announcement_board.update_old_announcements()
 			print("Done.")
 
 		elif choice == 'b':
@@ -1596,7 +1652,7 @@ class Librus:
 					)
 				)
 			self.announcement_board.librus = self
-			# TO-DO: self.announcement_board.update_old_grades()
+			self.announcement_board.update_old_announcements()
 			self.file_handler.class_to_file(
 				self.announcement_board, "announcements.pickle"
 			)
@@ -1631,7 +1687,7 @@ class Librus:
 			for attendance in temp_attendance_table.attendances:
 				self.attendance_table.add(attendance)  # future proof my code
 			self.attendance_table.librus = self
-			# TO-DO: self.attendance_table.update_old_grades()
+			self.attendance_table.update_old_attendance()
 			print("Done.")
 
 		elif choice == 'b':
@@ -1647,7 +1703,7 @@ class Librus:
 			for i in attendance:
 				self.attendance_table.add(Attendance(i))
 			self.attendance_table.librus = self
-			# TO-DO: self.attendance_table.update_old_grades()
+			self.attendance_table.update_old_attendance()
 			self.file_handler.class_to_file(
 				self.attendance_table, "attendance.pickle"
 			)
@@ -1659,5 +1715,6 @@ class Librus:
 
 
 lib = Librus()
-lib.update_attendance_table()
-print(lib.attendance_table.display())
+lib.update_announcements_board()
+a = lib.announcement_board.compare_old_announcements()
+print(a.display())
