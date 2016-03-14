@@ -1327,7 +1327,10 @@ class LibrusFetcher:
 		Set in Librus object during init.
 
 	Functions:
-	fetch_grades(login, password) - fetches the grades and returns the HTML.
+	fetch_grades(login, password) - fetches grades
+		and returns the HTML.
+	fetch_page(login, password, url) - fetches a page from librus
+		and returns the HTML.
 	fetch_announcements(login, password) - fetches announcements
 		and returns the HTML.
 	fetch_events(login, password, month, year) - fetches events
@@ -1368,15 +1371,14 @@ class LibrusFetcher:
 			'TestCookie': '1'
 		}
 
-	def fetch_announcements(self, login, password):
-		"""fetch_announcements(login, password) - fetches announcements and
-			returns the HTML.
-
-		TO-DO: Functions below are copy pasted, refactor it.
+	def fetch_page(self, login, password, url):
+		"""fetch_page(login, password, url) - fetches a page from librus
+			and returns the HTML.
 
 		Parameters:
 		login (string) - login for librus
 		password (string) - password for librus
+		url (string) - url for the page
 		"""
 		self.payload['login'] = login
 		self.payload['passwd'] = password
@@ -1387,8 +1389,18 @@ class LibrusFetcher:
 				cookies=self.cookies
 			)
 			time.sleep(2)
-			response = session.get(self.url_announcements, headers=self.headers)
+			response = session.get(url, headers=self.headers)
 		return response.text
+
+	def fetch_announcements(self, login, password):
+		"""fetch_announcements(login, password) - fetches announcements and
+			returns the HTML.
+
+		Parameters:
+		login (string) - login for librus
+		password (string) - password for librus
+		"""
+		return self.fetch_page(login, password, self.url_announcements)
 
 	def fetch_grades(self, login, password):
 		"""fetch_grades(login, password) - fetches grades and returns the HTML.
@@ -1397,17 +1409,17 @@ class LibrusFetcher:
 		login (string) - login for librus
 		password (string) - password for librus
 		"""
-		self.payload['login'] = login
-		self.payload['passwd'] = password
-		with requests.Session() as session:
-			response = session.post(
-				self.url_login,
-				data=self.payload, headers=self.headers,
-				cookies=self.cookies
-			)
-			time.sleep(2)
-			response = session.get(self.url_grades, headers=self.headers)
-		return response.text
+		return self.fetch_page(login, password, self.url_grades)
+
+	def fetch_attendance(self, login, password):
+		"""fetch_attendance(login, password) - fetches grades and
+			returns the HTML.
+
+		Parameters:
+		login (string) - login for librus
+		password (string) - password for librus
+		"""
+		return self.fetch_page(login, password, self.url_attendance)
 
 	def fetch_events(self, login, password, month, year):
 		"""fetch_events(login, password, month, year)
@@ -1444,26 +1456,6 @@ class LibrusFetcher:
 				params=mini_payload
 			)
 			return(response.text)
-
-	def fetch_attendance(self, login, password):
-		"""fetch_attendance(login, password) - fetches grades and
-			returns the HTML.
-
-		Parameters:
-		login (string) - login for librus
-		password (string) - password for librus
-		"""
-		self.payload['login'] = login
-		self.payload['passwd'] = password
-		with requests.Session() as session:
-			response = session.post(
-				self.url_login,
-				data=self.payload, headers=self.headers,
-				cookies=self.cookies
-			)
-			time.sleep(2)
-			response = session.get(self.url_attendance, headers=self.headers)
-		return response.text
 
 
 class Librus:
