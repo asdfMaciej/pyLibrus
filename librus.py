@@ -605,6 +605,7 @@ class Event:
 		5 - Test
 		6 - Lesson observation
 		7 - Canceled lessons
+		8 - Moved lessons
 	event_type (str) - type of the Event, corresponds to event_numtype:
 		Dzień wolny, (0)
 		Nieobecność, (1)
@@ -612,15 +613,16 @@ class Event:
 		Zastępstwo, (3)
 		Sprawdzian, (4)
 		Kartkówka, (5)
-		Obserwacja lekcji (6)
-		Odwołane zajęcia (7)
+		Obserwacja lekcji, (6)
+		Odwołane zajęcia, (7)
+		Przesunięte zajęcia (8)
 	date (str) - date in which the event was inputed in Librus
 	teacher (str) - teacher in mentioned event. Works in numtypes
-		1, 2, 3, 4, 5, 6.
+		1, 2, 3, 4, 5, 6, 7, 8.
 		In 1, it's the absent teacher.
 		In 2, it's the class teacher, which put the event in Librus.
 		In 3, it's the teacher who is a Substitute.
-		In 4-6, it's the lesson teacher.
+		In 4-8, it's the lesson teacher.
 	absence_period (str) - lesson number of a given event or the
 		absence period of a teacher, for ex. (4 do 6)
 		Works on numtypes 4, 5, 6 and sometimes 1.
@@ -711,7 +713,7 @@ class Event:
 			display_string = "["+temp_date+"]: " + self.event_type+" - "+self.teacher
 			if self.absence_period:
 				display_string += ", od lekcji "+self.absence_period+"."
-		elif self.event_numtype in (3, 7):  # zastepstwa i odwolane zajecia
+		elif self.event_numtype in (3, 7, 8):  # zastepstwa, odwolane i przesuniete
 			display_string = "["+temp_date+"]: "+self.event_type+" z "+self.teacher
 			display_string += " na lekcji nr. "+self.date+" - "
 			display_string += self.description_additional
@@ -1008,6 +1010,7 @@ class Parser:
 			'style="background-color: #FF8C00; cursor: pointer;"': 5,  # kartkowki
 			'style="background-color: #BA55D3; cursor: pointer;"': 6   # obserwacje
 		}  # 7 non existant due to another method of detection, see few lines below
+		# the same applies to 8
 		types_dict_string = {
 			0: "Dzień wolny",
 			1: "Nieobecność",
@@ -1016,7 +1019,8 @@ class Parser:
 			4: "Sprawdzian",
 			5: "Kartkówka",
 			6: "Obserwacja lekcji",
-			7: "Odwołane zajęcia"
+			7: "Odwołane zajęcia",
+			8: "Przesunięte zajęcia"
 		}
 		dodane_id = {}
 
@@ -1052,6 +1056,8 @@ class Parser:
 					if event_numtype == 3:
 						if "Odwołane zajęcia" in temp_event:
 							event_numtype = 7
+						elif "Przesunięcie" in temp_event:
+							event_numtype = 8
 
 					event_type = types_dict_string[event_numtype]
 
@@ -1097,11 +1103,13 @@ class Parser:
 						except:
 							absence_period = ""
 
-					if event_numtype in (3, 7):
+					if event_numtype in (3, 7, 8):
 						if event_numtype == 3:
 							teacher = temp_event.split('Zastępstwo z ')[1].split(' na')[0]
-						else:
+						elif event_numtype == 7:
 							teacher = temp_event.split('zajęcia<br>')[1].split(' na')[0]
+						elif event_numtype == 8:
+							teacher = temp_event.split('Przesunięcie z ')[1].split(' na')[0]
 						date = temp_event.split('nr: ')[1].split(' (')[0]
 						description_additional = temp_event.split('(')[1].split(')')[0]
 
@@ -1715,6 +1723,5 @@ class Librus:
 
 
 lib = Librus()
-lib.update_announcements_board()
-a = lib.announcement_board.compare_old_announcements()
-print(a.display())
+lib.update_event_calendar()
+print(lib.event_calendar.display())
