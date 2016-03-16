@@ -1715,5 +1715,227 @@ class Librus:
 
 
 lib = Librus()
-lib.update_event_calendar()
-print(lib.event_calendar.display())
+html = lib.file_handler.read_file('pln.html')
+totalhtml = html.split('<table class="decorated plan-lekcji">')[1].split('</table>')[0]
+thead = totalhtml.split('<thead>')[1].split('</thead>')[0]
+tbody = totalhtml.split('</thead>')[1].split('<tfoot>')[0]
+temp_lesson_rows = tbody.split('<tr class="line1">')[1:]
+lesson_rows = []
+for row in temp_lesson_rows:
+	lesson_rows.append(row.split('</tr>')[0])
+lesson_schedule = []
+
+temp_fuck_this_shit = thead.split('<td>')[2:]
+cock_and_balls = []
+for fucking_hell in temp_fuck_this_shit:
+	cock_and_balls.append(fucking_hell.split('</td>')[0])
+
+temp_insult = {}
+for day in cock_and_balls:
+	dayyy = day.split('<BR />')[0]
+	dateeee = day.split('<BR />')[1]
+	temp_insult[dayyy] = dateeee
+
+lesson_schedule.append(temp_insult)  # 0th element
+for row in lesson_rows:
+	lesson_row = []
+	lesson_number = row.split('<td class="center" style="height: 50px;" >')[1]
+	lesson_number = lesson_number.split('</td>')[0]
+	lesson_row.append(lesson_number)
+
+	lesson_hours = row.split('<th class="center" NOWRAP>')[1]
+	lesson_hours = lesson_hours.split('</th>')[0].split('&nbsp;-&nbsp;')
+	lesson_row.append(lesson_hours)
+	lesson_schedule.append(lesson_row)
+
+	temp_string = '<td class="line1" NOWRAP style="padding: 0px;'
+	temp_string += ' min-height: 40px; vertical-align: top;" nowrap>'
+	temp_lessons = row.split(temp_string)
+	lessons_temp = []
+	for temptemp in temp_lessons:
+		lessons_temp.append(temptemp.split('</td>')[0])
+	lessons = []
+	for lesson in lessons_temp[1:]:
+		lesson_info = []
+		if lesson == '&nbsp;':
+			pass
+		else:
+			# TO-DO: Add all of the different lesson events.
+			lesson_type = 0  # normal
+			# TO-DO: Implement below multiple events/1 table element
+			# TO-DO: IT'S BROKEN FIX THAT SHIT
+			divs = lesson.split('<div class="text">')[1:]
+			fuck_counter = 0
+			for div in divs:
+				lesson_special = {}
+				fuck_counter += 1
+				div_text = div.split('</div>')[0]
+				#div_text = lesson.split('<div class="text">')[1].split('</div>')[0]
+				lesson_name = div_text.split('<b>')[1].split('</b>')[0]
+				teacher = div_text.split('<br/>-')[1].replace('&nbsp;', ' ')[1:]
+				teacher = teacher.split(' (')[0]
+				lesson_info.append(lesson_name)
+				lesson_info.append(teacher)
+
+				if ('odwołane' in lesson) and not (('przesunięcie' not in lesson) or (fuck_counter == 2)):
+					lesson_type = 1
+
+				elif 'przesunięcie' in lesson:
+					lesson_type = 2
+					moved_check = lesson.split('przesunięcie')[1].split('</div>')[1]
+					if '<s>' in moved_check:  # the moved lesson, old one
+						lesson_type = 3
+					data_special = lesson.split('<a href="javascript:void(0);" title="')[1]
+					data_special = data_special.split('">')[0]
+					previous_teacher = data_special.split('Nauczyciel:</b> ')[1]
+					previous_teacher = previous_teacher.split(' ->')[0]
+					lesson_special['teacher'] = previous_teacher
+					new_teacher = data_special.split('-> ')[1].split('<br>')[0]
+					lesson_special['new_teacher'] = new_teacher
+					previous_subject = data_special.split('Przedmiot:</b> ')[1]
+					previous_subject = previous_subject.split(' ->')[0]
+					lesson_special['previous_subject'] = previous_subject
+					new_subject = data_special.split('Przedmiot:</b> ')[1]
+					if '->' in new_subject:
+						new_subject = new_subject.split(' -> ')[1]
+					else:
+						new_subject = previous_subject
+					lesson_special['new_subject'] = new_subject
+				elif 'zastępstwo' in lesson:
+					lesson_type = 4
+					data_special = lesson.split('<a href="javascript:void(0);" title="')[1]
+					data_special = data_special.split('">')[0]
+					previous_teacher = data_special.split('Nauczyciel:</b> ')[1]
+					previous_teacher = previous_teacher.split(' ->')[0]
+					lesson_special['teacher'] = previous_teacher
+					new_teacher = data_special.split('-> ')[1].split('<br>')[0]
+					lesson_special['new_teacher'] = new_teacher
+					previous_subject = data_special.split('Przedmiot:</b> ')[1]
+					previous_subject = previous_subject.split(' ->')[0]
+					lesson_special['previous_subject'] = previous_subject
+					new_subject = data_special.split('Przedmiot:</b> ')[1]
+					if '->' in new_subject:
+						new_subject = new_subject.split(' -> ')[1]
+					else:
+						new_subject = previous_subject
+					lesson_special['new_subject'] = new_subject
+				elif 'dzień wolny szkoły' in lesson:
+					lesson_type = 5
+
+				lesson_special['numtype'] = lesson_type
+				lesson_info.append(lesson_special)
+		lessons.append([lesson_info])
+	lesson_schedule.append(lessons)
+	# here it comes
+	# please no
+	lessons_refactor = {}
+	lessons_refactor['lekcje_info'] = {}
+	num_to_day = {
+		1: 'Poniedziałek',
+		2: 'Wtorek',
+		3: 'Środa',
+		4: 'Czwartek',
+		5: 'Piątek',
+		6: 'Sobota',
+		7: 'Niedziela'
+	}
+	days = [
+		'Poniedziałek',
+		'Wtorek',
+		'Środa',
+		'Czwartek',
+		'Piątek',
+		'Sobota',
+		'Niedziela'
+	]
+	for x in list(lesson_schedule[0].keys()):
+		lessons_refactor['lekcje_info'][x] = lesson_schedule[0][x]
+		lessons_refactor[x] = []
+	index = 0
+	for part in lesson_schedule[1:]:
+		index += 1
+		if index % 2: # time data
+			lessons_refactor['lekcje_info'][int(part[0])] = part[1]
+		else:
+			i = 1
+			for x in part:
+				day_now = num_to_day[i]
+				i += 1
+				for a in part[i-2]:  # dear god what is this spaghetti
+					lessons_refactor[day_now].append(a)
+
+	backup = lessons_refactor
+	new = lessons_refactor
+	for day in days:
+		new_day = {}
+		i = 1
+		for lekcja in backup[day]:
+			new_day[i] = lekcja
+			i += 1
+		new[day] = new_day
+	lessons_refactor = new
+
+table_2d = []
+first_row = ["---"]
+for day in days:
+	day_text = day+"\n"
+	day_text += lessons_refactor['lekcje_info'][day]
+	first_row.append(day_text)
+
+table_2d.append(first_row)
+
+for x in sorted(list(lessons_refactor['lekcje_info'].keys()), key=lambda x: str(x) if len(str(x))-1 else "0"+str(x)):
+	if x not in days:
+		append_table = []
+		day_text = str(x)+"\n"+str(lessons_refactor['lekcje_info'][x][0])
+		day_text += "\n"+str(lessons_refactor['lekcje_info'][x][1])
+		append_table.append(day_text)
+		for day in days:
+			lessons_day = lessons_refactor[day][int(x)]
+			lesson_text = ""
+			if lessons_day:  # is not []
+				for i in range(int(len(lessons_day)/3)):
+					numtype = lessons_day[i*3+2]['numtype']
+					special = lessons_day[i*3+2]
+					if numtype == 0:  # normal
+						lesson_text += lessons_day[i*3+0]
+						lesson_text += "\n"+lessons_day[i*3+1]
+					elif numtype == 1:  # canceled
+						lesson_text += "[-] ODWOŁANE:\n"
+						lesson_text += lessons_day[i*3+0]
+						lesson_text += "\n"+lessons_day[i*3+1]
+					elif numtype == 2:  # przesuniecie new
+						lesson_text += "[+] PRZESUNIETE:\n"
+						lesson_text += special['new_subject']+"\n"
+						lesson_text += special['new_teacher']
+					elif numtype == 3:  # przesuniecie old
+						lesson_text += "[-] PRZESUNIETE\n"
+						lesson_text += "    (ODWOŁANE):\n"
+						lesson_text += special['new_subject']+"\n"
+						lesson_text += special['new_teacher']
+					elif numtype == 4:  # zastepstwo
+						lesson_text += "[*] ZASTĘPSTWO:\n"
+						if special['previous_subject'] != special['new_subject']:
+							lesson_text += special['previous_subject']+"\n---\/---\n"
+							lesson_text += special['new_subject']+"\n"
+						else:
+							lesson_text += special['new_subject']+"\n"
+						lesson_text += special['teacher']+"\n---\/---\n"
+						lesson_text += special['new_teacher']
+					else:
+						print(lessons_day)
+					if len(lessons_day) > 3:
+						if i != (len(lessons_day)/3)-1:
+							lesson_text += "\n----------\n"
+
+			append_table.append(lesson_text)
+		table_2d.append(append_table)
+
+from texttable import Texttable
+t = Texttable()
+#print(__import__("json").dumps(lessons_refactor, sort_keys=False, indent=4, separators=(',', ': ')))
+t.add_rows(table_2d)
+t.set_cols_align(["m","m","m","m","m","m","m","m"])
+t.set_cols_width([30,30,30,30,30,30,30,30])
+print(t.draw())
+#print(table_2d)
