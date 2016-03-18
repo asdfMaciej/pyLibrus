@@ -948,8 +948,16 @@ class Timetable:
 		"""
 		t = Texttable()  # imported from timetable module, pip install it
 		t.add_rows(self.transform_array())
-		t.set_cols_align(["m","m","m","m","m","m","m","m"])
-		t.set_cols_width([30,30,30,30,30,30,30,30])
+		t.set_cols_align([
+			"m", "m", "m", "m",
+			"m", "m", "m", "m"
+			]
+		)
+		t.set_cols_width([
+			30, 30, 30, 30,
+			30, 30, 30, 30
+			]
+		)
 		return t.draw()
 
 	def transform_array(self):
@@ -1026,6 +1034,7 @@ class Timetable:
 					append_table.append(lesson_text)
 				table_2d.append(append_table)
 		return table_2d
+
 
 class Parser:
 	"""Parser - a parser object, used to parse HTML into variables.
@@ -1339,7 +1348,8 @@ class Parser:
 		Parameters:
 		html (string) - HTML of the schedule page on Librus.
 		"""
-		totalhtml = html.split('<table class="decorated plan-lekcji">')[1].split('</table>')[0]
+		totalhtml = html.split('<table class="decorated plan-lekcji">')
+		totalhtml = totalhtml[1].split('</table>')[0]
 		thead = totalhtml.split('<thead>')[1].split('</thead>')[0]
 		tbody = totalhtml.split('</thead>')[1].split('<tfoot>')[0]
 		temp_lesson_rows = tbody.split('<tr class="line1">')[1:]
@@ -1393,14 +1403,19 @@ class Parser:
 						lesson_special = {}
 						fuck_counter += 1
 						div_text = div.split('</div>')[0]
-						#div_text = lesson.split('<div class="text">')[1].split('</div>')[0]
+						# div_text = lesson.split('<div class="text">')[1].split('</div>')[0]
 						lesson_name = div_text.split('<b>')[1].split('</b>')[0]
 						teacher = div_text.split('<br/>-')[1].replace('&nbsp;', ' ')[1:]
 						teacher = teacher.split(' (')[0]
 						lesson_info.append(lesson_name)
 						lesson_info.append(teacher)
 
-						if ('odwołane' in lesson) and not (('przesunięcie' not in lesson) or (fuck_counter == 2)):
+						condition = (
+							('odwołane' in lesson) and not (
+								('przesunięcie' not in lesson) or (fuck_counter == 2)
+							)
+						)
+						if condition:
 							lesson_type = 1
 
 						elif 'przesunięcie' in lesson:
@@ -1477,7 +1492,7 @@ class Parser:
 			index = 0
 			for part in lesson_schedule[1:]:
 				index += 1
-				if index % 2: # time data
+				if index % 2:  # time data
 					lessons_refactor['lekcje_info'][int(part[0])] = part[1]
 				else:
 					i = 1
@@ -1498,6 +1513,7 @@ class Parser:
 				new[day] = new_day
 			lessons_refactor = new
 		return lessons_refactor
+
 	def parse_html_grade(self, html):
 		"""parse_html_grade(html) - parses html and returns a list of soup grades
 		(used in Parser.parse_grade)
